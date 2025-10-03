@@ -1,0 +1,51 @@
+<svg width="400" height="300" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="skyGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#87CEEB;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#E0F6FF;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="buildingGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#D4AF37;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#B8860B;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Ciel -->
+  <rect width="400" height="150" fill="url(#skyGradient)"/>
+  
+  <!-- Montagne/Colline -->
+  <polygon points="0,150 100,100 200,120 300,80 400,110 400,150" fill="#228B22"/>
+  
+  <!-- Bâtiment principal -->
+  <rect x="50" y="120" width="300" height="180" fill="url(#buildingGradient)"/>
+  
+  <!-- Toit -->
+  <polygon points="40,120 200,60 360,120" fill="#8B4513"/>
+  
+  <!-- Fenêtres -->
+  <rect x="80" y="150" width="30" height="40" fill="#4169E1" stroke="#000" stroke-width="2"/>
+  <rect x="130" y="150" width="30" height="40" fill="#4169E1" stroke="#000" stroke-width="2"/>
+  <rect x="180" y="150" width="30" height="40" fill="#4169E1" stroke="#000" stroke-width="2"/>
+  <rect x="230" y="150" width="30" height="40" fill="#4169E1" stroke="#000" stroke-width="2"/>
+  <rect x="280" y="150" width="30" height="40" fill="#4169E1" stroke="#000" stroke-width="2"/>
+  
+  <rect x="80" y="210" width="30" height="40" fill="#4169E1" stroke="#000" stroke-width="2"/>
+  <rect x="130" y="210" width="30" height="40" fill="#4169E1" stroke="#000" stroke-width="2"/>
+  <rect x="180" y="210" width="30" height="40" fill="#4169E1" stroke="#000" stroke-width="2"/>
+  <rect x="230" y="210" width="30" height="40" fill="#4169E1" stroke="#000" stroke-width="2"/>
+  <rect x="280" y="210" width="30" height="40" fill="#4169E1" stroke="#000" stroke-width="2"/>
+  
+  <!-- Entrée -->
+  <rect x="170" y="250" width="60" height="50" fill="#8B4513"/>
+  <rect x="185" y="265" width="30" height="35" fill="#654321"/>
+  
+  <!-- Palmiers -->
+  <rect x="20" y="200" width="8" height="100" fill="#8B4513"/>
+  <circle cx="24" cy="200" r="15" fill="#228B22"/>
+  
+  <rect x="370" y="190" width="8" height="110" fill="#8B4513"/>
+  <circle cx="374" cy="190" r="15" fill="#228B22"/>
+  
+  <!-- Texte -->
+  <text x="200" y="290" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#000">Hôtel La Falaise</text>
+</svg>

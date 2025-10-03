@@ -1,0 +1,62 @@
+<svg width="400" height="300" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="skyGradient2" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFB6C1;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#FFF0F5;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="buildingGradient2" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#CD853F;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#A0522D;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Ciel -->
+  <rect width="400" height="120" fill="url(#skyGradient2)"/>
+  
+  <!-- Montagne -->
+  <polygon points="0,120 80,60 160,80 240,40 320,70 400,50 400,120" fill="#32CD32"/>
+  
+  <!-- Bâtiment principal -->
+  <rect x="80" y="100" width="240" height="200" fill="url(#buildingGradient2)"/>
+  
+  <!-- Toit plat avec terrasse -->
+  <rect x="70" y="90" width="260" height="20" fill="#696969"/>
+  <rect x="75" y="85" width="250" height="10" fill="#778899"/>
+  
+  <!-- Balcons -->
+  <rect x="90" y="130" width="80" height="8" fill="#696969"/>
+  <rect x="190" y="130" width="80" height="8" fill="#696969"/>
+  <rect x="290" y="130" width="20" height="8" fill="#696969"/>
+  
+  <rect x="90" y="180" width="80" height="8" fill="#696969"/>
+  <rect x="190" y="180" width="80" height="8" fill="#696969"/>
+  <rect x="290" y="180" width="20" height="8" fill="#696969"/>
+  
+  <!-- Fenêtres -->
+  <rect x="100" y="140" width="25" height="30" fill="#87CEEB" stroke="#000" stroke-width="1"/>
+  <rect x="135" y="140" width="25" height="30" fill="#87CEEB" stroke="#000" stroke-width="1"/>
+  <rect x="200" y="140" width="25" height="30" fill="#87CEEB" stroke="#000" stroke-width="1"/>
+  <rect x="235" y="140" width="25" height="30" fill="#87CEEB" stroke="#000" stroke-width="1"/>
+  
+  <rect x="100" y="190" width="25" height="30" fill="#87CEEB" stroke="#000" stroke-width="1"/>
+  <rect x="135" y="190" width="25" height="30" fill="#87CEEB" stroke="#000" stroke-width="1"/>
+  <rect x="200" y="190" width="25" height="30" fill="#87CEEB" stroke="#000" stroke-width="1"/>
+  <rect x="235" y="190" width="25" height="30" fill="#87CEEB" stroke="#000" stroke-width="1"/>
+  
+  <rect x="100" y="240" width="25" height="30" fill="#87CEEB" stroke="#000" stroke-width="1"/>
+  <rect x="135" y="240" width="25" height="30" fill="#87CEEB" stroke="#000" stroke-width="1"/>
+  <rect x="200" y="240" width="25" height="30" fill="#87CEEB" stroke="#000" stroke-width="1"/>
+  <rect x="235" y="240" width="25" height="30" fill="#87CEEB" stroke="#000" stroke-width="1"/>
+  
+  <!-- Entrée -->
+  <rect x="280" y="240" width="40" height="60" fill="#8B4513"/>
+  <rect x="290" y="255" width="20" height="45" fill="#654321"/>
+  
+  <!-- Végétation -->
+  <circle cx="50" cy="250" r="25" fill="#228B22"/>
+  <circle cx="350" cy="240" r="20" fill="#228B22"/>
+  <circle cx="370" cy="260" r="15" fill="#228B22"/>
+  
+  <!-- Texte -->
+  <text x="200" y="290" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#000">Résidence Mont Fébé</text>
+</svg>

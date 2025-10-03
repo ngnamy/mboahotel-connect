@@ -1,0 +1,61 @@
+<svg width="400" height="300" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="skyBamenda" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#B0E0E6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#F0F8FF;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Ciel -->
+  <rect width="400" height="130" fill="url(#skyBamenda)"/>
+  
+  <!-- Montagnes du Nord-Ouest -->
+  <polygon points="0,130 50,70 100,85 150,55 200,75 250,45 300,65 350,50 400,70 400,130" fill="#2F4F4F"/>
+  <polygon points="0,120 70,60 140,75 210,45 280,65 350,40 400,60 400,120" fill="#696969" opacity="0.7"/>
+  
+  <!-- Brouillard matinal -->
+  <ellipse cx="150" cy="100" rx="80" ry="15" fill="#F5F5F5" opacity="0.8"/>
+  <ellipse cx="280" cy="95" rx="60" ry="12" fill="#F5F5F5" opacity="0.6"/>
+  
+  <!-- Bâtiments coloniaux -->
+  <rect x="70" y="120" width="50" height="60" fill="#F5DEB3"/>
+  <rect x="65" y="115" width="60" height="8" fill="#8B4513"/>
+  <rect x="80" y="135" width="12" height="18" fill="#4169E1"/>
+  <rect x="100" y="135" width="12" height="18" fill="#4169E1"/>
+  <rect x="80" y="160" width="12" height="20" fill="#654321"/>
+  
+  <rect x="150" y="115" width="60" height="65" fill="#F5DEB3"/>
+  <rect x="145" y="110" width="70" height="8" fill="#8B4513"/>
+  <rect x="160" y="130" width="15" height="20" fill="#4169E1"/>
+  <rect x="185" y="130" width="15" height="20" fill="#4169E1"/>
+  <rect x="172.5" y="155" width="15" height="25" fill="#654321"/>
+  
+  <rect x="250" y="125" width="45" height="55" fill="#F5DEB3"/>
+  <rect x="245" y="120" width="55" height="8" fill="#8B4513"/>
+  <rect x="260" y="140" width="10" height="15" fill="#4169E1"/>
+  <rect x="275" y="140" width="10" height="15" fill="#4169E1"/>
+  
+  <!-- Marché traditionnel -->
+  <polygon points="320,140 340,125 360,140 360,180 320,180" fill="#DEB887"/>
+  <polygon points="315,140 340,120 365,140" fill="#8B4513"/>
+  <rect x="330" y="155" width="8" height="12" fill="#654321"/>
+  <rect x="345" y="155" width="8" height="12" fill="#654321"/>
+  
+  <!-- Végétation de montagne -->
+  <circle cx="40" cy="160" r="18" fill="#228B22"/>
+  <circle cx="55" cy="165" r="12" fill="#32CD32"/>
+  <circle cx="380" cy="155" r="15" fill="#228B22"/>
+  <circle cx="365" cy="160" r="10" fill="#32CD32"/>
+  
+  <!-- Plantations en terrasses -->
+  <path d="M20,170 Q120,165 220,170" stroke="#9ACD32" stroke-width="8" fill="none" opacity="0.7"/>
+  <path d="M30,180 Q130,175 230,180" stroke="#8FBC8F" stroke-width="8" fill="none" opacity="0.7"/>
+  <path d="M40,190 Q140,185 240,190" stroke="#9ACD32" stroke-width="8" fill="none" opacity="0.7"/>
+  
+  <!-- Route de montagne -->
+  <path d="M0,200 Q100,195 200,200 Q300,205 400,200" stroke="#696969" stroke-width="12" fill="none"/>
+  <path d="M0,200 Q100,195 200,200 Q300,205 400,200" stroke="#FFFF00" stroke-width="2" fill="none" opacity="0.8"/>
+  
+  <!-- Texte -->
+  <text x="200" y="280" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#000">Bamenda - Nord-Ouest</text>
+</svg>

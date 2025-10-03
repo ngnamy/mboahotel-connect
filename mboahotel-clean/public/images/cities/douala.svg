@@ -1,0 +1,70 @@
+<svg width="400" height="300" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="skyDouala" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#4682B4;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#87CEEB;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Ciel -->
+  <rect width="400" height="120" fill="url(#skyDouala)"/>
+  
+  <!-- Fleuve Wouri -->
+  <rect y="120" width="400" height="60" fill="#4682B4"/>
+  <path d="M0,140 Q100,135 200,140 T400,140" stroke="#87CEEB" stroke-width="3" fill="none"/>
+  <path d="M0,160 Q150,155 300,160 T400,160" stroke="#87CEEB" stroke-width="2" fill="none"/>
+  
+  <!-- Port et grues -->
+  <rect x="20" y="100" width="8" height="80" fill="#696969"/>
+  <rect x="40" y="90" width="8" height="90" fill="#696969"/>
+  <rect x="60" y="95" width="8" height="85" fill="#696969"/>
+  
+  <!-- Bras des grues -->
+  <rect x="15" y="105" width="20" height="3" fill="#696969"/>
+  <rect x="35" y="95" width="20" height="3" fill="#696969"/>
+  <rect x="55" y="100" width="20" height="3" fill="#696969"/>
+  
+  <!-- Bâtiments commerciaux -->
+  <rect x="100" y="110" width="50" height="70" fill="#CD853F"/>
+  <rect x="170" y="100" width="60" height="80" fill="#D2691E"/>
+  <rect x="250" y="115" width="45" height="65" fill="#A0522D"/>
+  <rect x="320" y="105" width="55" height="75" fill="#CD853F"/>
+  
+  <!-- Toits plats (style moderne) -->
+  <rect x="95" y="105" width="60" height="8" fill="#696969"/>
+  <rect x="165" y="95" width="70" height="8" fill="#696969"/>
+  <rect x="245" y="110" width="55" height="8" fill="#696969"/>
+  <rect x="315" y="100" width="65" height="8" fill="#696969"/>
+  
+  <!-- Fenêtres modernes -->
+  <rect x="110" y="125" width="12" height="18" fill="#4169E1"/>
+  <rect x="125" y="125" width="12" height="18" fill="#4169E1"/>
+  <rect x="110" y="150" width="12" height="18" fill="#4169E1"/>
+  <rect x="125" y="150" width="12" height="18" fill="#4169E1"/>
+  
+  <rect x="185" y="115" width="15" height="20" fill="#4169E1"/>
+  <rect x="205" y="115" width="15" height="20" fill="#4169E1"/>
+  <rect x="185" y="140" width="15" height="20" fill="#4169E1"/>
+  <rect x="205" y="140" width="15" height="20" fill="#4169E1"/>
+  <rect x="185" y="165" width="15" height="15" fill="#4169E1"/>
+  <rect x="205" y="165" width="15" height="15" fill="#4169E1"/>
+  
+  <!-- Conteneurs du port -->
+  <rect x="25" y="170" width="15" height="10" fill="#FF6347"/>
+  <rect x="45" y="170" width="15" height="10" fill="#32CD32"/>
+  <rect x="65" y="170" width="15" height="10" fill="#FFD700"/>
+  
+  <!-- Bateaux -->
+  <ellipse cx="150" cy="165" rx="25" ry="8" fill="#8B4513"/>
+  <rect x="140" y="160" width="20" height="5" fill="#654321"/>
+  
+  <ellipse cx="300" cy="170" rx="30" ry="10" fill="#696969"/>
+  <rect x="285" y="165" width="30" height="5" fill="#2F4F4F"/>
+  
+  <!-- Palmiers -->
+  <rect x="380" y="160" width="6" height="40" fill="#8B4513"/>
+  <circle cx="383" cy="160" r="12" fill="#228B22"/>
+  
+  <!-- Texte -->
+  <text x="200" y="280" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#000">Douala - Capitale Économique</text>
+</svg>

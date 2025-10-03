@@ -1,0 +1,93 @@
+<svg width="400" height="300" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="skyGradient3" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#4169E1;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#87CEFA;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="buildingGradient3" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#F5F5DC;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#DDBF94;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Ciel -->
+  <rect width="400" height="100" fill="url(#skyGradient3)"/>
+  
+  <!-- Mer/Rivière -->
+  <rect y="100" width="400" height="40" fill="#4682B4"/>
+  <path d="M0,120 Q100,115 200,120 T400,120" stroke="#87CEEB" stroke-width="2" fill="none"/>
+  <path d="M0,130 Q150,125 300,130 T400,130" stroke="#87CEEB" stroke-width="2" fill="none"/>
+  
+  <!-- Bâtiment principal (plus grand et luxueux) -->
+  <rect x="60" y="80" width="280" height="220" fill="url(#buildingGradient3)"/>
+  
+  <!-- Tours latérales -->
+  <rect x="40" y="120" width="40" height="180" fill="url(#buildingGradient3)"/>
+  <rect x="320" y="120" width="40" height="180" fill="url(#buildingGradient3)"/>
+  
+  <!-- Toit principal -->
+  <polygon points="50,80 200,40 350,80" fill="#DC143C"/>
+  
+  <!-- Toits des tours -->
+  <polygon points="35,120 60,100 85,120" fill="#DC143C"/>
+  <polygon points="315,120 340,100 365,120" fill="#DC143C"/>
+  
+  <!-- Fenêtres du bâtiment principal -->
+  <rect x="80" y="110" width="20" height="25" fill="#FFD700" stroke="#000" stroke-width="1"/>
+  <rect x="110" y="110" width="20" height="25" fill="#FFD700" stroke="#000" stroke-width="1"/>
+  <rect x="140" y="110" width="20" height="25" fill="#FFD700" stroke="#000" stroke-width="1"/>
+  <rect x="170" y="110" width="20" height="25" fill="#FFD700" stroke="#000" stroke-width="1"/>
+  <rect x="200" y="110" width="20" height="25" fill="#FFD700" stroke="#000" stroke-width="1"/>
+  <rect x="230" y="110" width="20" height="25" fill="#FFD700" stroke="#000" stroke-width="1"/>
+  <rect x="260" y="110" width="20" height="25" fill="#FFD700" stroke="#000" stroke-width="1"/>
+  <rect x="290" y="110" width="20" height="25" fill="#FFD700" stroke="#000" stroke-width="1"/>
+  
+  <!-- Étages supplémentaires -->
+  <rect x="80" y="150" width="20" height="25" fill="#FFD700" stroke="#000" stroke-width="1"/>
+  <rect x="110" y="150" width="20" height="25" fill="#FFD700" stroke="#000" stroke-width="1"/>
+  <rect x="140" y="150" width="20" height="25" fill="#FFD700" stroke="#000" stroke-width="1"/>
+  <rect x="170" y="150" width="20" height="25" fill="#FFD700" stroke="#000" stroke-width="1"/>
+  <rect x="200" y="150" width="20" height="25" fill="#FFD700" stroke="#000" stroke-width="1"/>
+  <rect x="230" y="150" width="20" height="25" fill="#FFD700" stroke="#000" stroke-width="1"/>
+  <rect x="260" y="150" width="20" height="25" fill="#FFD700" stroke="#000" stroke-width="1"/>
+  <rect x="290" y="150" width="20" height="25" fill="#FFD700" stroke="#000" stroke-width="1"/>
+  
+  <rect x="80" y="190" width="20" height="25" fill="#FFD700" stroke="#000" stroke-width="1"/>
+  <rect x="110" y="190" width="20" height="25" fill="#FFD700" stroke="#000" stroke-width="1"/>
+  <rect x="140" y="190" width="20" height="25" fill="#FFD700" stroke="#000" stroke-width="1"/>
+  <rect x="170" y="190" width="20" height="25" fill="#FFD700" stroke="#000" stroke-width="1"/>
+  <rect x="200" y="190" width="20" height="25" fill="#FFD700" stroke="#000" stroke-width="1"/>
+  <rect x="230" y="190" width="20" height="25" fill="#FFD700" stroke="#000" stroke-width="1"/>
+  <rect x="260" y="190" width="20" height="25" fill="#FFD700" stroke="#000" stroke-width="1"/>
+  <rect x="290" y="190" width="20" height="25" fill="#FFD700" stroke="#000" stroke-width="1"/>
+  
+  <!-- Fenêtres des tours -->
+  <rect x="50" y="140" width="15" height="20" fill="#FFD700" stroke="#000" stroke-width="1"/>
+  <rect x="50" y="170" width="15" height="20" fill="#FFD700" stroke="#000" stroke-width="1"/>
+  <rect x="50" y="200" width="15" height="20" fill="#FFD700" stroke="#000" stroke-width="1"/>
+  
+  <rect x="335" y="140" width="15" height="20" fill="#FFD700" stroke="#000" stroke-width="1"/>
+  <rect x="335" y="170" width="15" height="20" fill="#FFD700" stroke="#000" stroke-width="1"/>
+  <rect x="335" y="200" width="15" height="20" fill="#FFD700" stroke="#000" stroke-width="1"/>
+  
+  <!-- Entrée principale -->
+  <rect x="180" y="230" width="40" height="70" fill="#8B4513"/>
+  <rect x="190" y="245" width="20" height="55" fill="#654321"/>
+  
+  <!-- Colonnes d'entrée -->
+  <rect x="170" y="230" width="8" height="70" fill="#F5F5DC"/>
+  <rect x="222" y="230" width="8" height="70" fill="#F5F5DC"/>
+  
+  <!-- Piscine -->
+  <ellipse cx="200" cy="270" rx="60" ry="15" fill="#4682B4"/>
+  
+  <!-- Étoiles (5 étoiles) -->
+  <polygon points="200,25 202,31 208,31 203,35 205,41 200,37 195,41 197,35 192,31 198,31" fill="#FFD700"/>
+  <polygon points="215,25 217,31 223,31 218,35 220,41 215,37 210,41 212,35 207,31 213,31" fill="#FFD700"/>
+  <polygon points="230,25 232,31 238,31 233,35 235,41 230,37 225,41 227,35 222,31 228,31" fill="#FFD700"/>
+  <polygon points="245,25 247,31 253,31 248,35 250,41 245,37 240,41 242,35 237,31 243,31" fill="#FFD700"/>
+  <polygon points="260,25 262,31 268,31 263,35 265,41 260,37 255,41 257,35 252,31 258,31" fill="#FFD700"/>
+  
+  <!-- Texte -->
+  <text x="200" y="290" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#000">Hôtel Akwa Palace</text>
+</svg>

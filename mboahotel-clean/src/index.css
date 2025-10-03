@@ -1,0 +1,109 @@
+/**
+ * MboaHotel Connect - Styles principaux
+ * 
+ * Créé par: Ngnamy Fotie Raumuald
+ * Profession: Webmaster de profession - Développeur Full-Stack
+ * Email: ngnamy.fotie@example.com
+ * 
+ * Description: Styles CSS pour la première plateforme camerounaise 
+ * de réservation d'hôtels en ligne
+ * 
+ * Technologies: Tailwind CSS, CSS3, Responsive Design
+ * Date de création: 2025
+ */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-gray-50 text-gray-900;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors inline-flex items-center justify-center min-h-[44px] text-center;
+  }
+
+  .btn-secondary {
+    @apply bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-lg transition-colors inline-flex items-center justify-center min-h-[44px] text-center;
+  }
+
+  .card {
+    @apply bg-white rounded-lg shadow-md border border-gray-200;
+  }
+
+  .input {
+    @apply w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent;
+  }
+
+  /* Styles pour les boutons dans les récapitulatifs */
+  .cart-button {
+    @apply w-full py-3 px-3 text-sm font-medium rounded-lg transition-colors flex items-center justify-center min-h-[48px] whitespace-nowrap;
+  }
+
+  .cart-button-primary {
+    @apply cart-button bg-blue-600 hover:bg-blue-700 text-white;
+  }
+
+  .cart-button-secondary {
+    @apply cart-button bg-gray-200 hover:bg-gray-300 text-gray-800;
+  }
+
+  /* Styles pour éviter le débordement de texte */
+  .btn-text-truncate {
+    @apply truncate max-w-full;
+  }
+
+  /* Styles pour les boutons responsifs */
+  @media (max-width: 640px) {
+    .cart-button {
+      @apply text-xs py-2 px-2 min-h-[44px];
+    }
+  }
+
+  /* Styles pour les images d'hôtels */
+  .hotel-image {
+    @apply w-full h-full object-cover object-center;
+  }
+
+  .hotel-image-hover {
+    @apply hotel-image hover:scale-105 transition-transform duration-300;
+  }
+
+  .hotel-card-image {
+    @apply w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300;
+  }
+
+  /* Amélioration de l'affichage des images */
+  img {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+  }
+
+  /* Styles pour les conteneurs d'images */
+  .image-container {
+    @apply overflow-hidden rounded-lg;
+  }
+
+  .image-container-hover {
+    @apply image-container hover:shadow-lg transition-shadow duration-300;
+  }
+}
+
+/* Police du site */
+* {
+  /* font-family: 'Intrepid'; */
+}
+
+/* Dans src/index.css */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none; /* IE et Edge */
+  scrollbar-width: none; /* Firefox */
+}
