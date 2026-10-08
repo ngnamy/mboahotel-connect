@@ -5,6 +5,7 @@ export interface User {
   lastName: string;
   phone?: string;
   role: 'client' | 'hotelier' | 'admin';
+  partnerApplicationStatus?: 'pending' | 'approved' | 'rejected';
   createdAt: Date;
   updatedAt: Date;
 }

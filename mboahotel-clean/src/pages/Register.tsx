@@ -11,10 +11,14 @@ const Register: React.FC = () => {
   const role = searchParams.get('role') === 'hotelier' ? 'hotelier' : 'client';
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [businessName, setBusinessName] = useState('');
+  const [businessCity, setBusinessCity] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -25,11 +29,25 @@ const Register: React.FC = () => {
     const [firstName, ...lastName] = fullName.trim().split(/\s+/);
     setIsSubmitting(true);
     setError('');
+    setSuccessMessage('');
     try {
-      await register({ email, password, firstName, lastName: lastName.join(' '), role });
+      const result = await register({
+        email,
+        password,
+        firstName,
+        lastName: lastName.join(' '),
+        phone,
+        role,
+        businessName,
+        businessCity,
+      });
+      if (result.emailConfirmationRequired) {
+        setSuccessMessage('Votre compte a été créé. Consultez votre boîte e-mail et confirmez votre adresse avant de vous connecter.');
+        return;
+      }
       navigate(role === 'hotelier' ? '/dashboard' : '/reservations');
-    } catch {
-      setError('La création de compte est indisponible pour le moment. Réessayez lorsque le service sera configuré.');
+    } catch (registrationError) {
+      setError(registrationError instanceof Error ? registrationError.message : 'La création du compte a échoué. Réessayez.');
     } finally {
       setIsSubmitting(false);
     }
@@ -57,7 +75,7 @@ const Register: React.FC = () => {
                     : 'Créez votre espace pour retrouver plus facilement vos découvertes.'}
                 </p>
               </div>
-              <p className="mt-12 text-sm text-white/60">La création de compte dépend encore de la mise en service de l’API.</p>
+              <p className="mt-12 text-sm text-white/70">Les comptes sont sécurisés par Supabase. Les demandes hôtelières sont vérifiées avant l’ouverture de l’espace partenaire.</p>
             </aside>
 
             <section className="p-6 sm:p-10" aria-labelledby="register-title">
@@ -67,6 +85,7 @@ const Register: React.FC = () => {
                 <p className="page-description text-base">Renseignez vos coordonnées pour commencer.</p>
                 <form className="mt-8 space-y-5" onSubmit={handleSubmit}>
                   {error && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{error}</p>}
+                  {successMessage && <p role="status" className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-900">{successMessage}</p>}
                   <div>
                     <label htmlFor="fullName" className="mb-2 block text-sm font-medium text-[#37443c]">Nom complet</label>
                     <div className="relative">
@@ -74,6 +93,25 @@ const Register: React.FC = () => {
                       <input id="fullName" name="fullName" type="text" autoComplete="name" required minLength={2} className="input pl-11" placeholder="Prénom et nom" value={fullName} onChange={event => setFullName(event.target.value)} />
                     </div>
                   </div>
+                  {role === 'hotelier' && (
+                    <>
+                      <div>
+                        <label htmlFor="businessName" className="mb-2 block text-sm font-medium text-[#37443c]">Nom de l’établissement</label>
+                        <input id="businessName" name="businessName" type="text" required minLength={2} className="input" placeholder="Ex. Hôtel du Centre" value={businessName} onChange={event => setBusinessName(event.target.value)} />
+                      </div>
+                      <div>
+                        <label htmlFor="businessCity" className="mb-2 block text-sm font-medium text-[#37443c]">Ville de l’établissement</label>
+                        <input id="businessCity" name="businessCity" type="text" required className="input" placeholder="Ex. Douala" value={businessCity} onChange={event => setBusinessCity(event.target.value)} />
+                      </div>
+                      <div>
+                        <label htmlFor="phone" className="mb-2 block text-sm font-medium text-[#37443c]">Téléphone professionnel</label>
+                        <input id="phone" name="phone" type="tel" autoComplete="tel" required className="input" placeholder="+237 6XX XX XX XX" value={phone} onChange={event => setPhone(event.target.value)} />
+                      </div>
+                      <p className="rounded-xl border border-[#e4d0a2] bg-[#f8f3e9] px-4 py-3 text-sm leading-6 text-[#5c4324]">
+                        L’accès aux outils hôteliers est accordé après validation de votre demande partenaire.
+                      </p>
+                    </>
+                  )}
                   <div>
                     <label htmlFor="email" className="mb-2 block text-sm font-medium text-[#37443c]">Adresse e-mail</label>
                     <div className="relative">

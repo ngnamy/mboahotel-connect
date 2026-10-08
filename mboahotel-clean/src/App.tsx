@@ -38,6 +38,7 @@ import Terms from './pages/Terms';
 import NotFound from './pages/NotFound';
 import Favorites from './pages/Favorites';
 import Testimonials from './pages/Testimonials';
+import RequireAuth from './components/RequireAuth';
 
 // Contexts
 import { AuthProvider } from './contexts/AuthContext';
@@ -63,8 +64,8 @@ function App() {
                 <Route path="/hotel/:id" element={<HotelDetails />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/reservations" element={<Reservations />} />
+                <Route path="/dashboard" element={<RequireAuth><Dashboard /></RequireAuth>} />
+                <Route path="/reservations" element={<RequireAuth><Reservations /></RequireAuth>} />
                 <Route path="/favorites" element={<Favorites />} />
                 <Route path="/testimonials" element={<Testimonials />} />
                 <Route path="/contact" element={<Contact />} />

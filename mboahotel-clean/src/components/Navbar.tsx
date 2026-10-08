@@ -9,10 +9,18 @@ const Navbar: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [logoutError, setLogoutError] = useState('');
 
   const closeMenu = () => setIsMenuOpen(false);
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    setLogoutError('');
+    try {
+      await logout();
+    } catch (error) {
+      console.error('Échec de la déconnexion Supabase:', error);
+      setLogoutError('La déconnexion a échoué. Vérifiez votre connexion et réessayez.');
+      return;
+    }
     closeMenu();
     navigate('/');
   };
@@ -55,11 +63,11 @@ const Navbar: React.FC = () => {
             {user ? (
               <>
                 <Link to="/reservations" className="px-3 py-2 text-sm font-medium text-[#59645d] hover:text-[#174c3a]">
-                  Réservations
+                  Mon compte
                 </Link>
-                {user.role === 'hotelier' && (
+                {(user.role === 'hotelier' || user.role === 'admin' || user.partnerApplicationStatus) && (
                   <Link to="/dashboard" className="px-3 py-2 text-sm font-medium text-[#59645d] hover:text-[#174c3a]">
-                    Espace hôtelier
+                    {user.role === 'admin' ? 'Administration' : user.role === 'hotelier' ? 'Espace hôtelier' : 'Suivi partenaire'}
                   </Link>
                 )}
                 <button
@@ -113,8 +121,10 @@ const Navbar: React.FC = () => {
               {user ? (
                 <>
                   <Link to="/reservations" onClick={closeMenu} className={linkClass('/reservations')}>Mes réservations</Link>
-                  {user.role === 'hotelier' && (
-                    <Link to="/dashboard" onClick={closeMenu} className={linkClass('/dashboard')}>Espace hôtelier</Link>
+                  {(user.role === 'hotelier' || user.role === 'admin' || user.partnerApplicationStatus) && (
+                    <Link to="/dashboard" onClick={closeMenu} className={linkClass('/dashboard')}>
+                      {user.role === 'admin' ? 'Administration' : user.role === 'hotelier' ? 'Espace hôtelier' : 'Suivi partenaire'}
+                    </Link>
                   )}
                   <button
                     type="button"
@@ -143,6 +153,7 @@ const Navbar: React.FC = () => {
           </div>
         )}
       </nav>
+      {logoutError && <p role="alert" className="border-t border-red-200 bg-red-50 px-4 py-2 text-center text-sm text-red-800">{logoutError}</p>}
     </header>
   );
 };

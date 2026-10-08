@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ArrowRight, Eye, EyeOff, Lock, Mail } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 const Login: React.FC = () => {
-  const { login } = useAuth();
+  const { login, authError } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -18,10 +19,11 @@ const Login: React.FC = () => {
     setIsSubmitting(true);
     setError('');
     try {
-      await login(email, password);
-      navigate('/reservations');
-    } catch {
-      setError('La connexion est indisponible pour le moment. Réessayez lorsque le service sera configuré.');
+      const user = await login(email, password);
+      const requestedPath = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname;
+      navigate(requestedPath ?? (user.role === 'admin' || user.role === 'hotelier' || user.partnerApplicationStatus ? '/dashboard' : '/reservations'));
+    } catch (loginError) {
+      setError(loginError instanceof Error ? loginError.message : 'La connexion a échoué. Vérifiez vos identifiants et réessayez.');
     } finally {
       setIsSubmitting(false);
     }
@@ -42,7 +44,7 @@ const Login: React.FC = () => {
                 <p className="mt-12 text-xs font-bold uppercase tracking-[0.18em] text-[#f0d8a9]">Votre espace</p>
                 <h1 className="mt-3 text-3xl font-semibold leading-tight sm:text-4xl">Heureux de vous retrouver.</h1>
                 <p className="mt-4 max-w-sm leading-7 text-white/75">
-                  Connectez-vous pour retrouver les outils de votre compte lorsque le service sera disponible.
+                  Connectez-vous pour gérer vos informations et retrouver les réservations liées à votre compte.
                 </p>
               </div>
               <p className="mt-12 text-sm text-white/60">Une expérience pensée pour les séjours au Cameroun.</p>
@@ -54,6 +56,7 @@ const Login: React.FC = () => {
                 <h2 id="login-title" className="page-title">Accéder à mon compte</h2>
                 <p className="page-description text-base">Saisissez vos identifiants pour continuer.</p>
                 <form className="mt-8 space-y-5" onSubmit={handleSubmit}>
+                  {authError && <p role="status" className="rounded-xl border border-[#e4d0a2] bg-[#f8f3e9] px-4 py-3 text-sm text-[#5c4324]">{authError}</p>}
                   {error && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{error}</p>}
                   <div>
                     <label htmlFor="email" className="mb-2 block text-sm font-medium text-[#37443c]">Adresse e-mail</label>

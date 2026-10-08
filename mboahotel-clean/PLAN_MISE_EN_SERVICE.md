@@ -18,6 +18,35 @@ Le blocage le plus important est métier et technique : l’application peut pr�
 
 **Hébergement frontend :** une configuration Netlify est ajoutée à la racine du dépôt avec le sous-dossier `mboahotel-clean`, `npm run build`, la publication de `dist`, les règles SPA et des en-têtes HTTP. Le dépôt doit encore être autorisé et importé dans un compte Netlify pour activer le déploiement continu sur `main`. Cette configuration ne fournit pas d’API ; le proxy vers `api.mboahotel.com` a été retiré car ce domaine n’est ni confirmé ni présent dans le projet.
 
+## Mise à jour — fondation des comptes et des espaces (8 octobre 2026)
+
+Le frontend utilise désormais Supabase Auth et une base PostgreSQL Supabase pour les profils, demandes partenaires, établissements, types de chambres et la lecture des réservations. Les routes `/reservations` et `/dashboard` exigent une session. Les permissions sont appliquées par RLS ; une inscription demandant l’accès hôtelier reste un compte client jusqu’à l’approbation d’un administrateur. Le rôle transmis depuis le navigateur ne confère jamais de privilèges.
+
+### Configuration requise avant utilisation
+
+1. Créer un projet Supabase et exécuter `supabase/migrations/20261008090000_initial_accounts_and_hotelier_workspace.sql` depuis son SQL Editor.
+2. Ajouter `VITE_SUPABASE_URL` et `VITE_SUPABASE_ANON_KEY` au fichier local `.env` (modèle : `.env.example`) et aux variables d’environnement Netlify, puis redéployer. Seule la clé publique anon/publishable est autorisée dans le frontend ; ne jamais exposer `service_role`.
+3. Créer le premier compte administrateur via l’inscription normale, puis lui attribuer le rôle une seule fois depuis le SQL Editor Supabase avec une requête privilégiée, par exemple :
+
+   ```sql
+   update public.profiles
+   set role = 'admin', updated_at = now()
+   where id = (
+     select id from auth.users where email = 'admin@votre-domaine.cm'
+   );
+   ```
+
+4. Configurer dans Supabase les URL autorisées et l’URL de redirection d’e-mail vers `/login` pour les domaines locaux et Netlify. Activer la confirmation d’adresse e-mail en production.
+5. Tester en environnement de développement les inscriptions client et partenaire, confirmation d’e-mail, soumission puis approbation/refus d’une demande, contrôle d’accès à `/dashboard`, création d’un établissement et ajout/activation de chambres.
+
+La migration utilise une fonction `SECURITY DEFINER` bornée pour vérifier le rôle administrateur dans les politiques RLS, afin d’éviter une récursion sur `profiles`. Le rôle n’est pas modifiable via les permissions normales du client.
+
+### Limites toujours bloquantes pour l’ouverture commerciale
+
+- Le parcours de réservation et le paiement ne sont pas branchés à la base ni à un prestataire ; aucun séjour réel ne peut être créé depuis l’interface. L’espace membre ne montre que les réservations déjà persistées, sans création, annulation ni modification.
+- Les établissements soumis restent en attente de publication. L’ajout et l’activation des types de chambres sont disponibles dans l’espace hôtelier, mais la disponibilité par date, les photos, le paiement, les e-mails/SMS et l’approbation de fiche ne sont pas encore intégrés.
+- Aucun projet Supabase, secret public de configuration ou environnement de test n’est fourni dans le dépôt. Les parcours connectés ne peuvent donc pas être testés de bout en bout avant la configuration ci-dessus.
+
 ## Périmètre et vérifications
 
 Audit du contenu présent dans `src/` (pages, composants, contextes, hooks, types, utilitaires), de `index.html`, `package.json`, `vite.config.ts`, `public/`, des deux README et de la configuration de redirection Netlify. Les observations ci-dessous sont fondées sur le code du dépôt, pas sur un environnement de production ou un compte de prestataire.
