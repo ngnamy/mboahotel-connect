@@ -18,8 +18,12 @@ const CartIcon: React.FC = () => {
     <div className="relative">
       {/* Icône du panier */}
       <button
+        type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 text-gray-700 hover:text-blue-600 transition-colors"
+        aria-label={`Ouvrir le panier${state.itemCount ? `, ${state.itemCount} article${state.itemCount > 1 ? 's' : ''}` : ''}`}
+        aria-expanded={isOpen}
+        aria-controls="cart-dropdown"
+        className="relative rounded-xl p-2 text-[#59645d] transition-colors hover:bg-[#f1eee7] hover:text-[#174c3a]"
       >
         <ShoppingCart className="w-6 h-6" />
         {state.itemCount > 0 && (
@@ -33,21 +37,25 @@ const CartIcon: React.FC = () => {
       {isOpen && (
         <>
           {/* Overlay */}
-          <div 
+          <button
+            type="button"
             className="fixed inset-0 z-40" 
+            aria-label="Fermer le panier"
             onClick={() => setIsOpen(false)}
           />
           
           {/* Contenu du panier */}
-          <div className="absolute right-0 top-full mt-2 w-80 sm:w-96 bg-white rounded-lg shadow-xl border z-50 max-h-96 overflow-hidden">
+          <div id="cart-dropdown" className="absolute right-0 top-full z-50 mt-2 max-h-96 w-80 overflow-hidden rounded-2xl border border-[#e8e7e0] bg-white shadow-[0_18px_55px_rgba(23,37,31,0.16)] sm:w-96">
             <div className="p-4 border-b">
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-gray-900">
+                <h3 className="text-lg font-semibold text-[#17251f]">
                   Panier ({state.itemCount})
                 </h3>
                 <button
+                  type="button"
+                  aria-label="Fermer le panier"
                   onClick={() => setIsOpen(false)}
-                  className="text-gray-400 hover:text-gray-600"
+                  className="text-[#7b847d] hover:text-[#174c3a]"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -56,9 +64,9 @@ const CartIcon: React.FC = () => {
 
             {state.items.length === 0 ? (
               <div className="p-6 text-center">
-                <ShoppingCart className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                <p className="text-gray-500">Votre panier est vide</p>
-                <p className="text-sm text-gray-400 mt-1">
+                <ShoppingCart className="mx-auto mb-3 h-12 w-12 text-[#c8ccc6]" />
+                <p className="text-[#59645d]">Votre panier est vide</p>
+                <p className="mt-1 text-sm text-[#858d87]">
                   Ajoutez des chambres pour commencer
                 </p>
               </div>
@@ -74,12 +82,12 @@ const CartIcon: React.FC = () => {
                           className="w-16 h-12 object-cover object-center rounded"
                         />
                         <div className="flex-1 min-w-0">
-                          <h4 className="text-sm font-medium text-gray-900 truncate">
+                          <h4 className="truncate text-sm font-medium text-[#17251f]">
                             {item.hotelName}
                           </h4>
-                          <p className="text-sm text-gray-600">{item.roomName}</p>
+                          <p className="text-sm text-[#68736b]">{item.roomName}</p>
                           
-                          <div className="flex items-center text-xs text-gray-500 mt-1">
+                          <div className="mt-1 flex items-center text-xs text-[#858d87]">
                             <Calendar className="w-3 h-3 mr-1" />
                             <span>{formatDate(item.checkIn)} - {formatDate(item.checkOut)}</span>
                             <span className="mx-2">•</span>
@@ -89,8 +97,10 @@ const CartIcon: React.FC = () => {
                           <div className="flex items-center justify-between mt-2">
                             <div className="flex items-center space-x-2">
                               <button
+                                type="button"
+                                aria-label={`Retirer une chambre ${item.roomName}`}
                                 onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                                className="p-1 rounded-full hover:bg-gray-100"
+                                className="rounded-full p-1 hover:bg-[#f1eee7]"
                                 disabled={item.quantity <= 1}
                               >
                                 <Minus className="w-3 h-3" />
@@ -99,20 +109,24 @@ const CartIcon: React.FC = () => {
                                 {item.quantity}
                               </span>
                               <button
+                                type="button"
+                                aria-label={`Ajouter une chambre ${item.roomName}`}
                                 onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                                className="p-1 rounded-full hover:bg-gray-100"
+                                className="rounded-full p-1 hover:bg-[#f1eee7]"
                               >
                                 <Plus className="w-3 h-3" />
                               </button>
                             </div>
                             
                             <div className="text-right">
-                              <p className="text-sm font-semibold text-gray-900">
+                              <p className="text-sm font-semibold text-[#17251f]">
                                 {(item.price * item.quantity * item.nights).toLocaleString()} XAF
                               </p>
                               <button
+                                type="button"
+                                aria-label={`Supprimer ${item.roomName} de votre panier`}
                                 onClick={() => removeItem(item.id)}
-                                className="text-xs text-red-600 hover:text-red-700"
+                                className="text-xs text-[#9b4533] hover:text-[#773222]"
                               >
                                 Supprimer
                               </button>
@@ -124,10 +138,10 @@ const CartIcon: React.FC = () => {
                   ))}
                 </div>
 
-                <div className="p-4 bg-gray-50">
+                <div className="border-t border-[#eeede7] bg-[#faf9f6] p-4">
                   <div className="flex justify-between items-center mb-3">
-                    <span className="text-lg font-semibold text-gray-900">Total</span>
-                    <span className="text-xl font-bold text-blue-600">
+                    <span className="text-lg font-semibold text-[#17251f]">Total</span>
+                    <span className="text-xl font-bold text-[#174c3a]">
                       {state.total.toLocaleString()} XAF
                     </span>
                   </div>
@@ -136,14 +150,14 @@ const CartIcon: React.FC = () => {
                     <Link
                       to="/cart"
                       onClick={() => setIsOpen(false)}
-                      className="block w-full text-center bg-gray-200 text-gray-800 py-3 px-3 rounded-lg hover:bg-gray-300 transition-colors text-sm font-medium min-h-[44px] flex items-center justify-center"
+                      className="btn-secondary min-h-[44px] w-full text-sm"
                     >
                       Voir le panier
                     </Link>
                     <Link
                       to="/checkout"
                       onClick={() => setIsOpen(false)}
-                      className="block w-full text-center bg-blue-600 text-white py-3 px-3 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium min-h-[44px] flex items-center justify-center"
+                      className="btn-primary min-h-[44px] w-full text-sm"
                     >
                       Finaliser la commande
                     </Link>

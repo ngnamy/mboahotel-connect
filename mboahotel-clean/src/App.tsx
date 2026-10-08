@@ -35,6 +35,7 @@ import BookingSuccess from './pages/BookingSuccess';
 import BookingConfirmation from './pages/BookingConfirmation';
 import Privacy from './pages/Privacy';
 import Terms from './pages/Terms';
+import NotFound from './pages/NotFound';
 
 // Contexts
 import { AuthProvider } from './contexts/AuthContext';
@@ -49,7 +50,7 @@ function App() {
         <AuthProvider>
           <CartProvider>
             <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-              <div className="min-h-screen bg-gray-50">
+              <div className="min-h-screen bg-[#faf9f6]">
             <Navbar />
             <main className="flex-1">
               <Routes>
@@ -69,6 +70,7 @@ function App() {
                 <Route path="/hotel/:id/booking" element={<BookingConfirmation />} />
                 <Route path="/privacy" element={<Privacy />} />
                 <Route path="/terms" element={<Terms />} />
+                <Route path="*" element={<NotFound />} />
               </Routes>
             </main>
                 <Footer />

@@ -1,222 +1,146 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Building2, LogOut, Menu, User, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { Hotel, User, LogOut, Menu, X, Building2, Heart } from 'lucide-react';
 import CartIcon from './CartIcon';
 
 const Navbar: React.FC = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
+  const closeMenu = () => setIsMenuOpen(false);
   const handleLogout = () => {
     logout();
+    closeMenu();
     navigate('/');
   };
 
+  const linkClass = (path: string) =>
+    `rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+      location.pathname === path
+        ? 'text-[#174c3a]'
+        : 'text-[#59645d] hover:text-[#174c3a]'
+    }`;
+
   return (
-    <nav className="bg-white shadow-sm border-b">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
-          {/* Logo */}
-          <Link to="/" className="flex items-center space-x-2">
-            <Building2 className="h-8 w-8 text-blue-600" />
-            <span className="text-xl font-bold text-gray-900">MboaHotel Connect</span>
+    <header className="sticky top-0 z-40 border-b border-[#e8e7e0] bg-[#faf9f6]/95 backdrop-blur">
+      <div className="h-1 bg-gradient-to-r from-[#174c3a] via-[#f5f1e8] to-[#c66b42]" />
+      <nav aria-label="Navigation principale" className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="flex h-[76px] items-center justify-between gap-4">
+          <Link to="/" onClick={closeMenu} className="flex min-w-0 items-center gap-3">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#174c3a] text-white shadow-sm">
+              <Building2 aria-hidden="true" className="h-6 w-6" />
+            </span>
+            <span className="min-w-0">
+              <span className="block truncate text-base font-bold tracking-tight text-[#17251f] sm:text-lg">
+                MboaHotel
+              </span>
+              <span className="hidden text-[10px] font-semibold uppercase tracking-[0.2em] text-[#7b847d] sm:block">
+                Séjours au Cameroun
+              </span>
+            </span>
           </Link>
 
-          {/* Navigation Desktop */}
-          <div className="hidden md:flex items-center space-x-8">
-            <Link to="/" className="text-gray-700 hover:text-blue-600 font-medium">
-              Accueil
-            </Link>
-            <Link to="/search" className="text-gray-700 hover:text-blue-600 font-medium">
-              Nos Hôtels
-            </Link>
-            <Link to="/about" className="text-gray-700 hover:text-blue-600 font-medium">
-              À propos
-            </Link>
-            <Link to="/contact" className="text-gray-700 hover:text-blue-600 font-medium">
-              Contact
-            </Link>
+          <div className="hidden items-center gap-1 lg:flex">
+            <Link to="/" className={linkClass('/')}>Accueil</Link>
+            <Link to="/search" className={linkClass('/search')}>Explorer</Link>
+            <Link to="/about" className={linkClass('/about')}>À propos</Link>
+            <Link to="/contact" className={linkClass('/contact')}>Contact</Link>
           </div>
 
-          {/* Actions Desktop */}
-          <div className="hidden md:flex items-center space-x-4">
+          <div className="hidden items-center gap-2 md:flex">
             <CartIcon />
-            
-            {!user && (
-              <Link
-                to="/register?role=hotelier"
-                className="text-blue-600 hover:text-blue-700 font-medium"
-              >
-                Listez votre hôtel
-              </Link>
-            )}
-
             {user ? (
-              <div className="flex items-center space-x-4">
-                <Link
-                    to="/favorites"
-                    className="block px-3 py-2 text-gray-700"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    Mes Favoris
-                  </Link>
-                <Link
-                  to="/reservations"
-                  className="text-gray-700 hover:text-blue-600 font-medium"
-                >
-                  Mes réservations
+              <>
+                <Link to="/reservations" className="px-3 py-2 text-sm font-medium text-[#59645d] hover:text-[#174c3a]">
+                  Réservations
                 </Link>
-                
                 {user.role === 'hotelier' && (
-                  <Link
-                    to="/dashboard"
-                    className="text-gray-700 hover:text-blue-600 font-medium"
-                  >
-                    Tableau de bord
+                  <Link to="/dashboard" className="px-3 py-2 text-sm font-medium text-[#59645d] hover:text-[#174c3a]">
+                    Espace hôtelier
                   </Link>
                 )}
-
-                <div className="flex items-center space-x-2">
-                  <User className="h-5 w-5 text-gray-500" />
-                  <span className="text-sm text-gray-700">
-                    {user.firstName} {user.lastName}
-                  </span>
-                </div>
-
                 <button
+                  type="button"
                   onClick={handleLogout}
-                  className="flex items-center space-x-1 text-gray-700 hover:text-red-600"
+                  className="inline-flex min-h-[42px] items-center gap-2 rounded-xl px-3 text-sm font-medium text-[#59645d] transition-colors hover:bg-[#f1eee7] hover:text-[#174c3a]"
                 >
-                  <LogOut className="h-4 w-4" />
-                  <span>Déconnexion</span>
+                  <LogOut aria-hidden="true" className="h-4 w-4" />
+                  <span className="hidden xl:inline">Déconnexion</span>
                 </button>
-              </div>
+              </>
             ) : (
-              <div className="flex items-center space-x-4">
-                <Link
-                  to="/login"
-                  className="flex items-center space-x-1 text-gray-700 hover:text-blue-600"
-                >
-                  <User className="h-4 w-4" />
-                  <span>Connexion</span>
+              <>
+                <Link to="/login" className="px-3 py-2 text-sm font-semibold text-[#174c3a] hover:text-[#103b2d]">
+                  Connexion
                 </Link>
-                <Link
-                  to="/register"
-                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  Inscription
+                <Link to="/register" className="btn-primary min-h-[44px] px-4 py-2 text-sm">
+                  Créer un compte
                 </Link>
-              </div>
+              </>
             )}
           </div>
 
-          {/* Menu Mobile */}
-          <div className="md:hidden flex items-center space-x-2">
+          <div className="flex items-center gap-1 md:hidden">
             <CartIcon />
             <button
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="text-gray-700 hover:text-blue-600"
+              type="button"
+              aria-label={isMenuOpen ? 'Fermer le menu' : 'Ouvrir le menu'}
+              aria-expanded={isMenuOpen}
+              aria-controls="mobile-navigation"
+              onClick={() => setIsMenuOpen(open => !open)}
+              className="inline-flex h-11 w-11 items-center justify-center rounded-xl text-[#174c3a] transition-colors hover:bg-[#f1eee7]"
             >
-              {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+              {isMenuOpen
+                ? <X aria-hidden="true" className="h-5 w-5" />
+                : <Menu aria-hidden="true" className="h-5 w-5" />}
             </button>
           </div>
         </div>
 
-        {/* Menu Mobile Dropdown */}
         {isMenuOpen && (
-          <div className="md:hidden border-t bg-white">
-            <div className="px-2 pt-2 pb-3 space-y-1">
-              <Link
-                to="/"
-                className="block px-3 py-2 text-gray-700 hover:text-blue-600"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                Accueil
-              </Link>
-              <Link
-                to="/search"
-                className="block px-3 py-2 text-gray-700 hover:text-blue-600"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                Nos Hôtels
-              </Link>
-              <Link
-                to="/about"
-                className="block px-3 py-2 text-gray-700 hover:text-blue-600"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                À propos
-              </Link>
-              <Link
-                to="/contact"
-                className="block px-3 py-2 text-gray-700 hover:text-blue-600"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                Contact
-              </Link>
-              
-              {!user && (
-                <div className="border-t pt-2">
-                  <Link
-                    to="/register?role=hotelier"
-                    className="block px-3 py-2 text-blue-600 font-medium"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    Listez votre hôtel
-                  </Link>
-                  <Link
-                    to="/login"
-                    className="block px-3 py-2 text-gray-700"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    Connexion
-                  </Link>
-                  <Link
-                    to="/register"
-                    className="block px-3 py-2 bg-blue-600 text-white rounded-lg mx-3 mt-2 text-center"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    Inscription
-                  </Link>
-                </div>
-              )}
-
-              {user && (
-                <div className="border-t pt-2">
-                  <Link
-                    to="/reservations"
-                    className="block px-3 py-2 text-gray-700"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    Mes réservations
-                  </Link>
+          <div id="mobile-navigation" className="border-t border-[#e8e7e0] pb-4 pt-3 md:hidden">
+            <div className="grid gap-1">
+              <Link to="/" onClick={closeMenu} className={linkClass('/')}>Accueil</Link>
+              <Link to="/search" onClick={closeMenu} className={linkClass('/search')}>Explorer les hôtels</Link>
+              <Link to="/about" onClick={closeMenu} className={linkClass('/about')}>À propos</Link>
+              <Link to="/contact" onClick={closeMenu} className={linkClass('/contact')}>Contact</Link>
+              {user ? (
+                <>
+                  <Link to="/reservations" onClick={closeMenu} className={linkClass('/reservations')}>Mes réservations</Link>
                   {user.role === 'hotelier' && (
-                    <Link
-                      to="/dashboard"
-                      className="block px-3 py-2 text-gray-700"
-                      onClick={() => setIsMenuOpen(false)}
-                    >
-                      Tableau de bord
-                    </Link>
+                    <Link to="/dashboard" onClick={closeMenu} className={linkClass('/dashboard')}>Espace hôtelier</Link>
                   )}
                   <button
-                    onClick={() => {
-                      handleLogout();
-                      setIsMenuOpen(false);
-                    }}
-                    className="block w-full text-left px-3 py-2 text-red-600"
+                    type="button"
+                    onClick={handleLogout}
+                    className="flex min-h-[44px] items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium text-[#9b4533] hover:bg-[#f7eee9]"
                   >
+                    <LogOut aria-hidden="true" className="h-4 w-4" />
                     Déconnexion
                   </button>
+                </>
+              ) : (
+                <div className="mt-2 grid grid-cols-2 gap-2 border-t border-[#e8e7e0] pt-3">
+                  <Link to="/login" onClick={closeMenu} className="btn-secondary text-sm">
+                    <User aria-hidden="true" className="h-4 w-4" />
+                    Connexion
+                  </Link>
+                  <Link to="/register" onClick={closeMenu} className="btn-primary text-sm">
+                    Créer un compte
+                  </Link>
+                  <Link to="/register?role=hotelier" onClick={closeMenu} className="col-span-2 px-3 py-2 text-center text-sm font-medium text-[#174c3a]">
+                    Vous êtes hôtelier ? Découvrir l’espace partenaire
+                  </Link>
                 </div>
               )}
             </div>
           </div>
         )}
-      </div>
-    </nav>
+      </nav>
+    </header>
   );
 };
 
