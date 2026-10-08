@@ -22,6 +22,8 @@ const HotelierWorkspace: React.FC<HotelierWorkspaceProps> = ({ hotels, rooms, bu
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [roomPhotos, setRoomPhotos] = useState<RoomPhoto[]>([]);
   const [photoLimit, setPhotoLimit] = useState(3);
+  const [photosLoading, setPhotosLoading] = useState(false);
+  const [roomPhotoManagementId, setRoomPhotoManagementId] = useState('');
   const [photosError, setPhotosError] = useState('');
   const [hotelName, setHotelName] = useState('');
   const [hotelDescription, setHotelDescription] = useState('');
@@ -61,10 +63,12 @@ const HotelierWorkspace: React.FC<HotelierWorkspaceProps> = ({ hotels, rooms, bu
       setPhotos([]);
       setRoomPhotos([]);
       setPhotoLimit(3);
+      setPhotosLoading(false);
       setPhotosError('');
       return;
     }
     let active = true;
+    setPhotosLoading(true);
     setPhotos([]);
     setRoomPhotos([]);
     setPhotoLimit(3);
@@ -97,7 +101,10 @@ const HotelierWorkspace: React.FC<HotelierWorkspaceProps> = ({ hotels, rooms, bu
       if (error || roomPhotoError || subscriptionError) {
         const loadError = error ?? roomPhotoError ?? subscriptionError;
         console.error('Impossible de charger les photos ou les droits de l’établissement:', loadError);
-        if (active) setPhotosError(loadError.message);
+        if (active) {
+          setPhotosError(loadError.message);
+          setPhotosLoading(false);
+        }
         return;
       }
       let limit = 3;
@@ -109,7 +116,10 @@ const HotelierWorkspace: React.FC<HotelierWorkspaceProps> = ({ hotels, rooms, bu
           .maybeSingle();
         if (planError) {
           console.error('Impossible de charger la limite photo de la formule:', planError);
-          if (active) setPhotosError(planError.message);
+          if (active) {
+            setPhotosError(planError.message);
+            setPhotosLoading(false);
+          }
           return;
         }
         if (plan) limit = plan.max_photos;
@@ -118,6 +128,7 @@ const HotelierWorkspace: React.FC<HotelierWorkspaceProps> = ({ hotels, rooms, bu
         setPhotos(data ?? []);
         setRoomPhotos(roomPhotoRows ?? []);
         setPhotoLimit(limit);
+        setPhotosLoading(false);
       }
     };
     void loadPhotos();
@@ -215,12 +226,21 @@ const HotelierWorkspace: React.FC<HotelierWorkspaceProps> = ({ hotels, rooms, bu
         capacity: Number(roomCapacity),
         price_xaf: Number(roomPrice),
         total_units: Number(roomUnits),
-        updated_at: new Date().toISOString(),
       };
-      const { error } = roomId
-        ? await client.from('hotel_rooms').update(roomValues).eq('id', roomId)
-        : await client.from('hotel_rooms').insert({ ...roomValues, hotel_id: selectedHotel.id, is_active: true });
-      if (error) throw error;
+      if (roomId) {
+        const { error } = await client.from('hotel_rooms').update({
+          ...roomValues,
+          updated_at: new Date().toISOString(),
+        }).eq('id', roomId);
+        if (error) throw error;
+      } else {
+        const { data: newRoom, error } = await client.from('hotel_rooms')
+          .insert({ ...roomValues, hotel_id: selectedHotel.id, is_active: true })
+          .select('id')
+          .single();
+        if (error) throw error;
+        setRoomPhotoManagementId(newRoom.id);
+      }
       resetRoomForm();
     }, roomId ? 'La chambre a été modifiée.' : 'La chambre a été ajoutée.');
   };
@@ -474,12 +494,26 @@ const HotelierWorkspace: React.FC<HotelierWorkspaceProps> = ({ hotels, rooms, bu
                             <button type="button" disabled={busy} onClick={() => deleteRoom(room)} className="btn-secondary min-h-10 px-3 py-2 text-sm text-red-700"><Trash2 aria-hidden="true" className="h-4 w-4" /> Supprimer</button>
                           </div>
                         </div>
-                        {hotel.id === selectedHotelId && (
+                        <button
+                          type="button"
+                          disabled={busy}
+                          onClick={() => {
+                            setSelectedHotelId(hotel.id);
+                            setRoomPhotoManagementId(current => current === room.id ? '' : room.id);
+                          }}
+                          className="btn-secondary mt-3 min-h-9 px-3 py-2 text-sm"
+                        >
+                          <ImagePlus aria-hidden="true" className="h-4 w-4" />
+                          {roomPhotoManagementId === room.id ? 'Fermer les photos' : 'Gérer les photos de cette chambre'}
+                        </button>
+                        {roomPhotoManagementId === room.id && hotel.id === selectedHotelId && (
                           <div className="mt-3">
-                            <label className={`btn-secondary min-h-9 px-3 py-2 text-sm ${remainingPhotoCount ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`} aria-disabled={remainingPhotoCount === 0}>
+                            <p className="mb-2 text-sm text-[#68736b]">Ajoutez les images qui seront visibles sur la fiche publique de cette chambre. {usedPhotoCount}/{photoLimit} photos utilisées pour cet établissement.</p>
+                            <label className={`btn-secondary min-h-9 px-3 py-2 text-sm ${remainingPhotoCount && !photosLoading ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`} aria-disabled={remainingPhotoCount === 0 || photosLoading}>
                               <ImagePlus aria-hidden="true" className="h-4 w-4" /> Ajouter une photo à cette chambre
-                              <input className="sr-only" type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={busy || remainingPhotoCount === 0} onChange={event => uploadPhotos(event, room.id)} />
+                              <input className="sr-only" type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={busy || photosLoading || remainingPhotoCount === 0} onChange={event => uploadPhotos(event, room.id)} />
                             </label>
+                            {photosLoading && <p role="status" className="mt-2 text-sm text-[#68736b]">Chargement des photos et du quota...</p>}
                             {roomPhotos.filter(photo => photo.room_id === room.id).length > 0 && (
                               <div className="mt-3 flex flex-wrap gap-2">
                                 {roomPhotos.filter(photo => photo.room_id === room.id).map((photo, index) => (
