@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import TestimonialList from '../components/TestimonialList';
 import TestimonialForm from '../components/TestimonialForm';
@@ -114,15 +115,16 @@ const mockTestimonials: Testimonial[] = [
 
 const Testimonials: React.FC = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [testimonials, setTestimonials] = useState<Testimonial[]>(mockTestimonials);
   const [showForm, setShowForm] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [feedback, setFeedback] = useState('');
 
   const handleAddTestimonial = () => {
     if (!user) {
-      // Rediriger vers la page de connexion ou afficher un modal
-      alert('Veuillez vous connecter pour ajouter un témoignage');
+      navigate('/login');
       return;
     }
     setShowForm(true);
@@ -145,7 +147,7 @@ const Testimonials: React.FC = () => {
       const newTestimonial: Testimonial = {
         id: Date.now().toString(),
         userId: user.id,
-        userName: user.name,
+        userName: [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email,
         userEmail: user.email,
         userAvatar: avatarUrl,
         title: data.title,
@@ -166,11 +168,11 @@ const Testimonials: React.FC = () => {
       setShowForm(false);
 
       // Afficher un message de succès
-      alert('Votre témoignage a été soumis avec succès ! Il sera visible après modération.');
+      setFeedback('Ajout local à la démonstration uniquement : le témoignage n’a pas été transmis ni enregistré sur un serveur.');
       
     } catch (error) {
       console.error('Erreur lors de la soumission du témoignage:', error);
-      alert('Une erreur est survenue. Veuillez réessayer.');
+      setFeedback('Une erreur est survenue pendant la préparation du témoignage.');
     } finally {
       setIsSubmitting(false);
     }
@@ -191,8 +193,12 @@ const Testimonials: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 py-8">
+    <div className="page-shell">
+      <div className="page-container py-8">
+        <p role="note" className="mb-6 rounded-xl border border-[#e4d0a2] bg-[#f8f3e9] p-4 text-sm leading-6 text-[#5c4324]">
+          Contenu de démonstration : ces témoignages sont fictifs et ne représentent pas des avis clients vérifiés.
+        </p>
+        {feedback && <p role="status" className="mb-6 rounded-xl border border-[#bfd4c4] bg-[#eef4ef] p-4 text-sm leading-6 text-[#103b2d]">{feedback}</p>}
         {showForm ? (
           <div className="mb-8">
             <TestimonialForm

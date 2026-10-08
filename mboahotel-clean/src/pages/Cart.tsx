@@ -52,9 +52,9 @@ const Cart: React.FC = () => {
 
   if (state.items.length === 0) {
     return (
-      <div className="min-h-screen bg-gray-50 py-12">
-        <div className="max-w-2xl mx-auto px-4 text-center">
-          <div className="bg-white rounded-lg shadow-sm p-12">
+      <div className="page-shell">
+        <div className="page-container max-w-2xl text-center">
+          <div className="page-card p-8 sm:p-12">
             <ShoppingCart className="w-20 h-20 text-gray-300 mx-auto mb-6" />
             <h1 className="text-2xl font-bold text-gray-900 mb-4">
               Votre panier est vide
@@ -73,8 +73,8 @@ const Cart: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-4xl mx-auto px-4">
+    <div className="page-shell">
+      <div className="page-container max-w-5xl">
         {/* En-tête */}
         <div className="mb-8">
           <Link 
@@ -103,7 +103,7 @@ const Cart: React.FC = () => {
           {/* Liste des articles */}
           <div className="lg:col-span-2 space-y-4">
             {state.items.map((item) => (
-              <div key={item.id} className="bg-white rounded-lg shadow-sm p-6">
+              <div key={item.id} className="page-card p-5 sm:p-6">
                 <div className="flex items-start space-x-4">
                   <img
                     src={item.image}
@@ -226,7 +226,7 @@ const Cart: React.FC = () => {
 
           {/* Récapitulatif */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg shadow-sm p-6 sticky top-6">
+            <div className="page-card p-5 sm:sticky sm:top-24 sm:p-6">
               <h2 className="text-xl font-bold text-gray-900 mb-6">Récapitulatif</h2>
               
               <div className="space-y-3 mb-6">

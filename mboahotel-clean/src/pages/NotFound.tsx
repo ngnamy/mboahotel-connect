@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { ArrowLeft, Search } from 'lucide-react';
 
 const NotFound: React.FC = () => (
-  <main className="flex min-h-[65vh] items-center justify-center px-4 py-16">
+  <section className="flex min-h-[65vh] items-center justify-center bg-[#faf9f6] px-4 py-16">
     <div className="max-w-lg text-center">
       <p className="text-sm font-bold uppercase tracking-[0.2em] text-[#a3663d]">Erreur 404</p>
       <h1 className="mt-4 text-4xl font-semibold tracking-tight text-[#17251f] sm:text-5xl">
@@ -23,7 +23,7 @@ const NotFound: React.FC = () => (
         </Link>
       </div>
     </div>
-  </main>
+  </section>
 );
 
 export default NotFound;

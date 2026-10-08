@@ -8,8 +8,8 @@ const BookingSuccess: React.FC = () => {
 
   if (!bookingId) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
+      <div className="page-shell flex items-center justify-center">
+        <div className="page-card mx-4 max-w-lg p-8 text-center">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">Réservation non trouvée</h2>
           <p className="text-gray-600 mb-6">Aucune information de réservation disponible.</p>
           <Link to="/" className="btn-primary">
@@ -30,28 +30,31 @@ const BookingSuccess: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12">
-      <div className="max-w-3xl mx-auto px-4">
+    <div className="page-shell">
+      <div className="page-container max-w-4xl">
+        <p role="status" className="mb-6 rounded-xl border border-[#e4d0a2] bg-[#f8f3e9] p-4 text-sm leading-6 text-[#5c4324]">
+          Aperçu de démonstration : cette confirmation n’est pas un justificatif de réservation ou de paiement.
+        </p>
         {/* En-tête de confirmation */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
             <Check className="w-8 h-8 text-green-600" />
           </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Réservation confirmée !
+            Récapitulatif de démonstration
           </h1>
           <p className="text-lg text-gray-600">
-            Votre réservation a été traitée avec succès
+            Cet aperçu ne confirme pas de séjour et aucun paiement n’a été effectué.
           </p>
         </div>
 
         {/* Détails de la réservation */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+        <div className="page-card mb-6 p-5 sm:p-6">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-bold text-gray-900">Détails de la réservation</h2>
             <div className="text-right">
               <p className="text-sm text-gray-600">Numéro de réservation</p>
-              <p className="text-lg font-bold text-blue-600">{bookingId}</p>
+              <p className="text-lg font-bold text-[#174c3a]">{bookingId}</p>
             </div>
           </div>
 
@@ -89,8 +92,8 @@ const BookingSuccess: React.FC = () => {
                   <span>Incluses</span>
                 </div>
                 <div className="flex justify-between font-bold text-lg border-t pt-2">
-                  <span>Total payé :</span>
-                  <span className="text-blue-600">{total?.toLocaleString()} XAF</span>
+                  <span>Total indicatif :</span>
+                  <span className="text-[#174c3a]">{total?.toLocaleString()} XAF</span>
                 </div>
               </div>
             </div>
@@ -137,7 +140,7 @@ const BookingSuccess: React.FC = () => {
         </div>
 
         {/* Actions */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+        <div className="page-card mb-6 p-5 sm:p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Prochaines étapes</h3>
           <div className="grid md:grid-cols-2 gap-4">
             <button className="flex items-center justify-center bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors">
@@ -155,21 +158,16 @@ const BookingSuccess: React.FC = () => {
         <div className="bg-blue-50 rounded-lg p-6 mb-6">
           <h3 className="text-lg font-semibold text-blue-900 mb-3">Informations importantes</h3>
           <ul className="space-y-2 text-sm text-blue-800">
-            <li>• Un email de confirmation a été envoyé à {customerInfo?.email}</li>
-            <li>• Présentez-vous à la réception avec une pièce d'identité valide</li>
-            <li>• Les horaires de check-in et check-out sont indiqués dans votre confirmation</li>
-            <li>• Pour toute modification, contactez directement l'hôtel ou notre service client</li>
+            <li>• Aucun e-mail n’a été envoyé et aucun séjour n’a été réservé.</li>
+            <li>• Vérifiez directement les tarifs, disponibilités et conditions auprès de l’établissement.</li>
           </ul>
         </div>
 
         {/* Actions finales */}
         <div className="text-center space-y-4">
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link to="/reservations" className="btn-primary">
-              Voir mes réservations
-            </Link>
             <Link to="/search" className="btn-secondary">
-              Réserver un autre hôtel
+              Explorer les hébergements
             </Link>
             <Link to="/" className="btn-secondary">
               Retour à l'accueil

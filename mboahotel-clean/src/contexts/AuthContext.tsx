@@ -8,6 +8,10 @@ interface AuthContextType {
   register: (userData: RegisterData) => Promise<void>;
   logout: () => void;
   isLoading: boolean;
+  favoriteHotelIds: string[];
+  isFavorite: (hotelId: string) => boolean;
+  addFavorite: (hotelId: string) => void;
+  removeFavorite: (hotelId: string) => void;
 }
 
 interface RegisterData {
@@ -33,6 +37,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [favoriteHotelIds, setFavoriteHotelIds] = useState<string[]>([]);
 
   useEffect(() => {
     // Vérifier si un token existe dans le localStorage
@@ -46,6 +51,48 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     setIsLoading(false);
   }, []);
+
+  useEffect(() => {
+    if (!user) {
+      setFavoriteHotelIds([]);
+      return;
+    }
+
+    const savedFavorites = localStorage.getItem(`mboa-hotel-favorites:${user.id}`);
+    if (!savedFavorites) {
+      setFavoriteHotelIds([]);
+      return;
+    }
+
+    try {
+      const parsedFavorites: unknown = JSON.parse(savedFavorites);
+      if (Array.isArray(parsedFavorites) && parsedFavorites.every(id => typeof id === 'string')) {
+        setFavoriteHotelIds(parsedFavorites);
+      } else {
+        console.error('Les favoris enregistrés ont un format invalide.');
+        setFavoriteHotelIds([]);
+      }
+    } catch (error) {
+      console.error('Impossible de lire les favoris enregistrés:', error);
+      setFavoriteHotelIds([]);
+    }
+  }, [user?.id]);
+
+  const isFavorite = (hotelId: string) => favoriteHotelIds.includes(hotelId);
+
+  const addFavorite = (hotelId: string) => {
+    if (!user || isFavorite(hotelId)) return;
+    const nextFavorites = [...favoriteHotelIds, hotelId];
+    localStorage.setItem(`mboa-hotel-favorites:${user.id}`, JSON.stringify(nextFavorites));
+    setFavoriteHotelIds(nextFavorites);
+  };
+
+  const removeFavorite = (hotelId: string) => {
+    if (!user || !isFavorite(hotelId)) return;
+    const nextFavorites = favoriteHotelIds.filter(id => id !== hotelId);
+    localStorage.setItem(`mboa-hotel-favorites:${user.id}`, JSON.stringify(nextFavorites));
+    setFavoriteHotelIds(nextFavorites);
+  };
 
   const login = async (email: string, password: string) => {
     try {
@@ -113,6 +160,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     register,
     logout,
     isLoading,
+    favoriteHotelIds,
+    isFavorite,
+    addFavorite,
+    removeFavorite,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

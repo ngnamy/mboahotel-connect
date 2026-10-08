@@ -22,6 +22,8 @@ import {
 } from 'lucide-react';
 import ReviewForm from '../components/ReviewForm';
 import ImageGalleryModal from '../components/ImageGalleryModal';
+import FavoriteButton from '../components/FavoriteButton';
+import { mockHotels as catalogHotels } from './Search';
 
 // --- Définitions des types ---
 
@@ -148,10 +150,38 @@ const getRatingText = (rating: number) => {
 const HotelDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { addItem } = useCart();
-  const hotel = mockHotels.find(h => h.id === id);
+  const detailedHotel = mockHotels.find(h => h.id === id);
+  const catalogHotel = catalogHotels.find(h => h.id === id);
+  const hotel: Hotel | undefined = detailedHotel || (catalogHotel ? {
+    id: catalogHotel.id,
+    name: catalogHotel.name,
+    location: catalogHotel.location,
+    city: catalogHotel.city,
+    rating: catalogHotel.rating / 2,
+    reviewCount: catalogHotel.reviewCount,
+    price: catalogHotel.price,
+    images: [catalogHotel.image, catalogHotel.image, catalogHotel.image],
+    amenities: catalogHotel.amenities,
+    stars: catalogHotel.stars,
+    description: 'Cette fiche de démonstration ne contient pas encore de détails vérifiés ni de chambres réservables.',
+    rooms: [{
+      id: `room-${catalogHotel.id}`,
+      name: 'Disponibilité à confirmer',
+      price: catalogHotel.price,
+      capacity: 2,
+      images: [catalogHotel.image],
+      availableCount: 0,
+    }],
+    policies: {
+      checkIn: 'À confirmer',
+      checkOut: 'À confirmer',
+      cancellation: 'Les conditions sont à vérifier directement auprès de l’établissement.',
+    },
+  } : undefined);
   const [selectedRooms, setSelectedRooms] = useState<Record<string, number>>({});
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
   const [galleryImages, setGalleryImages] = useState<string[]>([]);
+  const [feedback, setFeedback] = useState('');
   const [checkIn, setCheckIn] = useState(() => {
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
@@ -222,8 +252,10 @@ const HotelDetails: React.FC = () => {
   const calculateNights = () => {
     const checkInDate = new Date(checkIn);
     const checkOutDate = new Date(checkOut);
-    const diffTime = Math.abs(checkOutDate.getTime() - checkInDate.getTime());
-    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const diffTime = checkOutDate.getTime() - checkInDate.getTime();
+    return Number.isFinite(diffTime) && diffTime > 0
+      ? Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+      : 0;
   };
 
   const nights = calculateNights();
@@ -252,8 +284,12 @@ const HotelDetails: React.FC = () => {
   }, [selectedRooms, hotel, nights]);
 
   const handleAddToCart = () => {
-    if (!hotel || Object.keys(selectedRooms).length === 0) return;
+    if (!hotel || Object.keys(selectedRooms).length === 0 || nights === 0) {
+      setFeedback('Choisissez des dates valides et au moins une chambre.');
+      return;
+    }
 
+    const selectedRoomCount = Object.values(selectedRooms).reduce((total, quantity) => total + quantity, 0);
     Object.entries(selectedRooms).forEach(([roomId, quantity]) => {
       const room = hotel.rooms.find(r => r.id === roomId);
       if (!room || quantity === 0) return;
@@ -275,22 +311,20 @@ const HotelDetails: React.FC = () => {
 
     // Réinitialiser la sélection après ajout au panier
     setSelectedRooms({});
-    
-    // Notification de succès (vous pouvez remplacer par un toast)
-    alert(`${Object.values(selectedRooms).reduce((a, b) => a + b, 0)} chambre(s) ajoutée(s) au panier !`);
+    setFeedback(`${selectedRoomCount} chambre(s) ajoutée(s) au panier de démonstration. Cela ne réserve pas de séjour.`);
   };
 
   const handleReviewSubmit = (rating: number, comment: string) => {
     const newReview: Review = {
       id: `review-${Date.now()}`,
-      userName: 'Vous (John Doe)', 
+      userName: 'Vous (démo)',
       rating: rating,
       date: new Date().toISOString().split('T')[0],
       comment: comment,
       helpful: 0,
     };
-    setReviews([newReview, ...reviews]);
-    alert('Merci pour votre commentaire ! Il a été ajouté localement.');
+    setReviews(previousReviews => [newReview, ...previousReviews]);
+    setFeedback('Votre commentaire a été ajouté uniquement à cette démonstration ; il n’a pas été envoyé ni enregistré sur un serveur.');
   };
 
   const amenityIcons: { [key: string]: React.ReactNode } = {
@@ -308,7 +342,7 @@ const HotelDetails: React.FC = () => {
 
   if (!hotel) {
     return (
-      <div className="flex items-center justify-center h-screen">
+      <div className="page-shell flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold">Hôtel non trouvé</h2>
           <p className="text-gray-600">Désolé, l'hôtel que vous cherchez n'existe pas.</p>
@@ -319,10 +353,15 @@ const HotelDetails: React.FC = () => {
   }
 
   return (
-    <div className="bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="page-shell !py-0">
+      <div className="page-container py-8">
+        <p role="note" className="mb-6 rounded-xl border border-[#e4d0a2] bg-[#f8f3e9] p-4 text-sm leading-6 text-[#5c4324]">
+          Fiche de démonstration : établissement, tarifs, avis et disponibilités à confirmer directement auprès de l’hôtel.
+        </p>
+        {feedback && <p role="status" className="mb-6 rounded-xl border border-[#bfd4c4] bg-[#eef4ef] p-4 text-sm leading-6 text-[#103b2d]">{feedback}</p>}
         {/* En-tête */}
-        <div className="mb-6">
+        <div className="relative mb-6 pr-12 sm:pr-14">
+          <FavoriteButton hotelId={hotel.id} />
           <h1 className="text-4xl font-bold text-gray-900">{hotel.name}</h1>
           <div className="flex flex-wrap items-center mt-2 gap-x-4 gap-y-2">
             <div className="flex items-center">
@@ -345,20 +384,20 @@ const HotelDetails: React.FC = () => {
         </div>
 
         {/* Galerie d'images */}
-        <div className="grid grid-cols-4 grid-rows-2 gap-2 mb-8 h-96">
+        <div className="mb-8 grid h-72 grid-cols-2 gap-2 sm:h-96 sm:grid-cols-4 sm:grid-rows-2">
           <div className="col-span-2 row-span-2 image-container-hover">
             <img src={hotel.images[0]} alt={hotel.name} className="hotel-image-hover" />
           </div>
-          <div className="image-container-hover">
+          <div className="image-container-hover hidden sm:block">
             <img src={hotel.images[1]} alt={hotel.name} className="hotel-image-hover" />
           </div>
-          <div className="image-container-hover">
+          <div className="image-container-hover hidden sm:block">
             <img src={hotel.images[2]} alt={hotel.name} className="hotel-image-hover" />
           </div>
-          <div className="image-container-hover">
+          <div className="image-container-hover hidden sm:block">
             <img src={hotel.images[0]} alt={hotel.name} className="hotel-image-hover" />
           </div>
-          <div className="image-container-hover">
+          <div className="image-container-hover hidden sm:block">
             <img src={hotel.images[1]} alt={hotel.name} className="hotel-image-hover" />
           </div>
         </div>
@@ -367,7 +406,7 @@ const HotelDetails: React.FC = () => {
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Colonne de gauche : Détails */}
           <div className="lg:col-span-2">
-            <div className="bg-white rounded-lg shadow-sm p-6">
+            <div className="page-card p-5 sm:p-6">
               <h2 className="text-2xl font-bold text-gray-900 mb-4">Description</h2>
               <p className="text-gray-700 leading-relaxed mb-6">{hotel.description}</p>
 
@@ -438,7 +477,7 @@ const HotelDetails: React.FC = () => {
             </div>
 
             {/* Section des avis */}
-            <div className="bg-white rounded-lg shadow-sm p-6 mt-8">
+            <div className="page-card mt-8 p-5 sm:p-6">
               <h2 className="text-2xl font-bold text-gray-900 mb-4">Avis des clients ({reviews.length})</h2>
               <div className="space-y-6">
                 {reviews.map(review => (
@@ -482,7 +521,7 @@ const HotelDetails: React.FC = () => {
 
           {/* Colonne de droite : Carte de réservation */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg shadow-sm p-6 sticky top-6">
+            <div className="page-card p-5 sm:sticky sm:top-24 sm:p-6">
               <h3 className="text-xl font-bold text-gray-900 mb-4">Réservation</h3>
               
               {/* Sélection des dates */}

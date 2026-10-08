@@ -1,170 +1,92 @@
 import React, { useState } from 'react';
+import { Helmet } from 'react-helmet-async';
 import { Link, useNavigate } from 'react-router-dom';
-import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import { ArrowRight, Eye, EyeOff, Lock, Mail } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 
 const Login: React.FC = () => {
+  const { login } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
 
-  const handleSubmit = async (event: React.FormEvent) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setIsLoading(true);
+    setIsSubmitting(true);
     setError('');
-
-    // Validation simple
-    if (!email || !password) {
-      setError('Veuillez remplir tous les champs');
-      setIsLoading(false);
-      return;
+    try {
+      await login(email, password);
+      navigate('/reservations');
+    } catch {
+      setError('La connexion est indisponible pour le moment. Réessayez lorsque le service sera configuré.');
+    } finally {
+      setIsSubmitting(false);
     }
-
-    // Simulation d'une connexion
-    setTimeout(() => {
-      // Simulation d'une vérification des identifiants
-      if (email === 'demo@mboahotel.com' && password === 'demo123') {
-        // Connexion réussie
-        localStorage.setItem('user', JSON.stringify({
-          email: email,
-          name: 'Utilisateur Demo',
-          isLoggedIn: true
-        }));
-        navigate('/dashboard');
-      } else {
-        setError('Email ou mot de passe incorrect');
-      }
-      setIsLoading(false);
-    }, 1500);
   };
 
   return (
-    // Le conteneur principal est centré et prend la hauteur de l'écran.
-    // py-12 est un padding vertical pour l'espacement.
-    <div className="flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8 card p-10">
-        <div className="text-center">
-          <img src="/hotel-icon.svg" alt="MboaHotel Connect Logo" className="mx-auto h-12 w-auto" />
-          <h2 className="mt-6 text-center text-3xl font-bold text-gray-900">
-            Connectez-vous
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Heureux de vous revoir !
-          </p>
-        </div>
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-              {error}
-            </div>
-          )}
-
-          <div className="space-y-4">
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                Adresse e-mail
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Mail className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  className="input pl-10"
-                  placeholder="exemple@domaine.com"
-                  value={email}
-                  onChange={(e) => {
-                    setEmail(e.target.value);
-                    if (error) setError('');
-                  }}
-                />
+    <>
+      <Helmet><title>Connexion | MboaHotel Connect</title></Helmet>
+      <div className="page-shell flex items-center">
+        <div className="page-container max-w-5xl">
+          <div className="grid overflow-hidden rounded-3xl border border-[#e8e7e0] bg-white shadow-[0_20px_65px_rgba(23,37,31,0.09)] lg:grid-cols-[0.9fr_1.1fr]">
+            <aside className="flex flex-col justify-between bg-[#174c3a] p-7 text-white sm:p-10">
+              <div>
+                <Link to="/" className="inline-flex items-center gap-3 font-semibold text-white">
+                  <img src="/hotel-icon.svg" alt="" className="h-10 w-10 rounded-xl bg-white p-1" />
+                  MboaHotel
+                </Link>
+                <p className="mt-12 text-xs font-bold uppercase tracking-[0.18em] text-[#f0d8a9]">Votre espace</p>
+                <h1 className="mt-3 text-3xl font-semibold leading-tight sm:text-4xl">Heureux de vous retrouver.</h1>
+                <p className="mt-4 max-w-sm leading-7 text-white/75">
+                  Connectez-vous pour retrouver les outils de votre compte lorsque le service sera disponible.
+                </p>
               </div>
-            </div>
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-                Mot de passe
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  id="password"
-                  name="password"
-                  type={showPassword ? 'text' : 'password'}
-                  autoComplete="current-password"
-                  required
-                  className="input pl-10 pr-10"
-                  placeholder="********"
-                  value={password}
-                  onChange={(e) => {
-                    setPassword(e.target.value);
-                    if (error) setError('');
-                  }}
-                />
-                <button
-                  type="button"
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600" />
-                  ) : (
-                    <Eye className="h-5 w-5 text-gray-400 hover:text-gray-600" />
-                  )}
-                </button>
+              <p className="mt-12 text-sm text-white/60">Une expérience pensée pour les séjours au Cameroun.</p>
+            </aside>
+
+            <section className="p-6 sm:p-10" aria-labelledby="login-title">
+              <div className="mx-auto max-w-md">
+                <p className="page-eyebrow">Connexion</p>
+                <h2 id="login-title" className="page-title">Accéder à mon compte</h2>
+                <p className="page-description text-base">Saisissez vos identifiants pour continuer.</p>
+                <form className="mt-8 space-y-5" onSubmit={handleSubmit}>
+                  {error && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{error}</p>}
+                  <div>
+                    <label htmlFor="email" className="mb-2 block text-sm font-medium text-[#37443c]">Adresse e-mail</label>
+                    <div className="relative">
+                      <Mail aria-hidden="true" className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#7b847d]" />
+                      <input id="email" name="email" type="email" autoComplete="email" required value={email} onChange={event => setEmail(event.target.value)} className="input pl-11" placeholder="vous@exemple.com" />
+                    </div>
+                  </div>
+                  <div>
+                    <label htmlFor="password" className="mb-2 block text-sm font-medium text-[#37443c]">Mot de passe</label>
+                    <div className="relative">
+                      <Lock aria-hidden="true" className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#7b847d]" />
+                      <input id="password" name="password" type={showPassword ? 'text' : 'password'} autoComplete="current-password" required value={password} onChange={event => setPassword(event.target.value)} className="input pl-11 pr-12" />
+                      <button type="button" aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'} onClick={() => setShowPassword(value => !value)} className="absolute inset-y-0 right-0 inline-flex w-12 items-center justify-center text-[#68736b] hover:text-[#174c3a]">
+                        {showPassword ? <EyeOff aria-hidden="true" className="h-5 w-5" /> : <Eye aria-hidden="true" className="h-5 w-5" />}
+                      </button>
+                    </div>
+                  </div>
+                  <p className="text-sm text-[#68736b]">Besoin d’aide ? <Link to="/contact" className="font-semibold text-[#174c3a] hover:underline">Contactez-nous</Link>.</p>
+                  <button type="submit" disabled={isSubmitting} className="btn-primary w-full">
+                    {isSubmitting ? 'Connexion…' : 'Se connecter'} <ArrowRight aria-hidden="true" className="h-4 w-4" />
+                  </button>
+                </form>
+                <p className="mt-6 text-center text-sm text-[#68736b]">
+                  Pas encore de compte ? <Link to="/register" className="font-semibold text-[#174c3a] hover:underline">Créer un compte</Link>
+                </p>
               </div>
-            </div>
+            </section>
           </div>
-
-          <div className="flex items-center justify-end text-sm">
-            <Link to="/forgot-password" className="font-medium text-blue-600 hover:text-blue-700">
-              Mot de passe oublié ?
-            </Link>
-          </div>
-
-          <div>
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="btn-primary w-full py-3 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isLoading ? (
-                <div className="flex items-center justify-center">
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                  Connexion...
-                </div>
-              ) : (
-                'Se connecter'
-              )}
-            </button>
-          </div>
-        </form>
-        
-        <div className="mt-6 text-center">
-          <p className="text-sm text-gray-600">
-            Compte de démonstration :{' '}
-            <span className="font-mono text-blue-600">demo@mboahotel.com</span> / <span className="font-mono text-blue-600">demo123</span>
-          </p>
-        </div>
-        <div className="text-sm text-center text-gray-600">
-          <p>
-            Pas encore de compte ?{' '}
-            <Link to="/register" className="font-medium text-blue-600 hover:text-blue-700">
-              Inscrivez-vous
-            </Link>
-          </p>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 
 export default Login;
-

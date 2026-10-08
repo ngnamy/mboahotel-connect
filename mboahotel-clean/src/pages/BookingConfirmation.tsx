@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
-import { Calendar, Users, CreditCard, Check, ArrowLeft, MapPin, Star } from 'lucide-react';
+import { Calendar, Users, CreditCard, ArrowLeft, MapPin, Star } from 'lucide-react';
 
 interface BookingItem {
   id: string;
@@ -33,13 +33,12 @@ const BookingConfirmation: React.FC = () => {
     specialRequests: ''
   });
 
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [bookingConfirmed, setBookingConfirmed] = useState(false);
+  const [availabilityMessage, setAvailabilityMessage] = useState('');
 
   if (!bookingDetails) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="max-w-md mx-auto text-center p-6">
+      <div className="page-shell flex items-center justify-center">
+        <div className="page-card mx-4 max-w-md p-6 text-center">
           <div className="text-red-600 mb-4">
             <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.314 16.5c-.77.833.192 2.5 1.732 2.5z" />
@@ -63,15 +62,9 @@ const BookingConfirmation: React.FC = () => {
     }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
-
-    // Simulation d'une requête API
-    setTimeout(() => {
-      setIsSubmitting(false);
-      setBookingConfirmed(true);
-    }, 2000);
+    setAvailabilityMessage('La réservation ne peut pas être transmise pour le moment. Aucune réservation n’a été créée.');
   };
 
   const calculateNights = () => {
@@ -85,42 +78,12 @@ const BookingConfirmation: React.FC = () => {
   const nights = calculateNights();
   const totalWithNights = bookingDetails.totalPrice * nights;
 
-  if (bookingConfirmed) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="max-w-2xl mx-auto text-center p-6">
-          <div className="bg-white rounded-lg shadow-lg p-8">
-            <div className="text-green-600 mb-6">
-              <Check className="w-20 h-20 mx-auto" />
-            </div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-4">Réservation confirmée !</h1>
-            <p className="text-lg text-gray-600 mb-6">
-              Votre réservation à <strong>{bookingDetails.hotelName}</strong> a été confirmée.
-            </p>
-            <div className="bg-gray-50 rounded-lg p-4 mb-6">
-              <p className="text-sm text-gray-600">Numéro de réservation</p>
-              <p className="text-xl font-bold text-blue-600">MHC-{Date.now().toString().slice(-8)}</p>
-            </div>
-            <p className="text-gray-600 mb-8">
-              Un email de confirmation a été envoyé à <strong>{formData.email}</strong>
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link to="/reservations" className="btn-primary">
-                Voir mes réservations
-              </Link>
-              <Link to="/" className="btn-secondary">
-                Retour à l'accueil
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-4xl mx-auto px-4">
+    <div className="page-shell">
+      <div className="page-container max-w-5xl">
+        <p role="status" className="mb-6 rounded-xl border border-[#e4d0a2] bg-[#f8f3e9] p-4 text-sm leading-6 text-[#5c4324]">
+          Cette page est un aperçu : les réservations ne sont pas enregistrées et aucun e-mail de confirmation n’est envoyé.
+        </p>
         {/* En-tête */}
         <div className="mb-8">
           <Link 
@@ -137,7 +100,8 @@ const BookingConfirmation: React.FC = () => {
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Formulaire */}
           <div className="lg:col-span-2">
-            <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-sm p-6">
+            <form onSubmit={handleSubmit} className="page-card p-5 sm:p-6">
+              {availabilityMessage && <p role="alert" className="mb-5 rounded-xl border border-[#e4d0a2] bg-[#f8f3e9] p-4 text-sm text-[#5c4324]">{availabilityMessage}</p>}
               <h2 className="text-xl font-bold text-gray-900 mb-6">Informations personnelles</h2>
               
               <div className="grid md:grid-cols-2 gap-4 mb-6">
@@ -259,26 +223,15 @@ const BookingConfirmation: React.FC = () => {
                 />
               </div>
 
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="btn-primary w-full text-lg py-3 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isSubmitting ? (
-                  <div className="flex items-center justify-center">
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                    Confirmation en cours...
-                  </div>
-                ) : (
-                  'Confirmer la réservation'
-                )}
+              <button type="submit" disabled className="btn-primary w-full cursor-not-allowed py-3 text-lg opacity-60">
+                Réservation indisponible
               </button>
             </form>
           </div>
 
           {/* Récapitulatif */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg shadow-sm p-6 sticky top-6">
+            <div className="page-card p-5 sm:sticky sm:top-24 sm:p-6">
               <h3 className="text-xl font-bold text-gray-900 mb-4">Récapitulatif</h3>
               
               <div className="mb-4 pb-4 border-b">
@@ -319,13 +272,13 @@ const BookingConfirmation: React.FC = () => {
                 <span className="text-blue-600">{totalWithNights.toLocaleString()} XAF</span>
               </div>
 
-              <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-                <div className="flex items-center text-blue-800 text-sm">
+              <div className="mt-4 rounded-xl border border-[#e4d0a2] bg-[#f8f3e9] p-3">
+                <div className="flex items-center text-[#5c4324] text-sm">
                   <CreditCard className="w-4 h-4 mr-2" />
-                  <span>Paiement sécurisé</span>
+                  <span>Aucun paiement traité</span>
                 </div>
-                <p className="text-xs text-blue-600 mt-1">
-                  Vos informations sont protégées par un cryptage SSL
+                <p className="mt-1 text-xs text-[#76552b]">
+                  La réservation n’est pas encore connectée à un service de paiement.
                 </p>
               </div>
             </div>

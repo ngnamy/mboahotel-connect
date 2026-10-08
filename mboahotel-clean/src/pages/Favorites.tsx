@@ -4,31 +4,39 @@ import { useAuth } from '../contexts/AuthContext';
 import { mockHotels } from './Search'; // Réutilisation des données de la page de recherche
 import { Heart, Star, MapPin } from 'lucide-react';
 import FavoriteButton from '../components/FavoriteButton';
+import PageIntro from '../components/PageIntro';
 
 const Favorites: React.FC = () => {
-  const { user } = useAuth();
+  const { user, favoriteHotelIds } = useAuth();
 
   if (!user) {
     return (
-      <div className="text-center py-20 max-w-2xl mx-auto">
-        <h2 className="text-2xl font-bold mb-4">Connectez-vous pour voir vos favoris</h2>
-        <p className="text-gray-600 mb-6">Créez un compte ou connectez-vous pour sauvegarder les hôtels qui vous plaisent et les retrouver facilement.</p>
-        <Link to="/login" className="btn-primary">
-          Se connecter
-        </Link>
+      <div className="page-shell">
+        <div className="page-container max-w-3xl">
+          <div className="page-card p-8 text-center sm:p-12">
+            <Heart aria-hidden="true" className="mx-auto h-10 w-10 text-[#174c3a]" />
+            <h1 className="page-title">Connectez-vous pour voir vos favoris</h1>
+            <p className="page-description mb-6">Connectez-vous pour retrouver les hébergements que vous avez enregistrés sur cet appareil.</p>
+            <Link to="/login" className="btn-primary">Se connecter</Link>
+          </div>
+        </div>
       </div>
     );
   }
 
-  const favoriteHotels = mockHotels.filter(hotel => user.favorites.includes(hotel.id));
+  const favoriteHotels = mockHotels.filter(hotel => favoriteHotelIds.includes(hotel.id));
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">Mes Hôtels Favoris</h1>
+    <div className="page-shell">
+      <div className="page-container">
+        <PageIntro
+          eyebrow="Votre sélection"
+          title="Mes hébergements favoris"
+          description="Les favoris sont conservés localement sur cet appareil et ne sont pas synchronisés avec un serveur."
+        />
         {favoriteHotels.length === 0 ? (
-          <div className="text-center bg-white p-12 rounded-lg shadow-sm">
-            <Heart className="mx-auto h-12 w-12 text-gray-400" />
+          <div className="page-card p-8 text-center sm:p-12">
+            <Heart aria-hidden="true" className="mx-auto h-12 w-12 text-[#7b847d]" />
             <h3 className="mt-2 text-lg font-medium text-gray-900">Vous n'avez pas encore de favoris</h3>
             <p className="mt-1 text-sm text-gray-500">
               Cliquez sur l'icône cœur sur un hôtel pour l'ajouter à votre liste.
@@ -40,9 +48,9 @@ const Favorites: React.FC = () => {
             </div>
           </div>
         ) : (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {favoriteHotels.map((hotel) => (
-              <div key={hotel.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow group relative">
+              <div key={hotel.id} className="page-card group relative overflow-hidden transition-shadow hover:shadow-xl">
                 <FavoriteButton hotelId={hotel.id} />
                 <Link to={`/hotel/${hotel.id}`}>
                   <div className="h-48 relative overflow-hidden">
@@ -50,11 +58,11 @@ const Favorites: React.FC = () => {
                   </div>
                   <div className="p-4">
                     <div className="flex justify-between items-start mb-2">
-                      <h3 className="font-semibold text-lg text-gray-900 group-hover:text-blue-600 transition-colors pr-2">
+                      <h3 className="pr-2 text-lg font-semibold text-[#17251f] transition-colors group-hover:text-[#174c3a]">
                         {hotel.name}
                       </h3>
                       <div className="flex items-center space-x-1 flex-shrink-0">
-                        <Star className="h-4 w-4 text-yellow-400 fill-current" />
+                        <Star className="h-4 w-4 fill-current text-[#b88b3d]" />
                         <span className="text-sm font-medium text-gray-700">{hotel.rating}</span>
                       </div>
                     </div>
@@ -80,4 +88,3 @@ const Favorites: React.FC = () => {
 };
 
 export default Favorites;
-

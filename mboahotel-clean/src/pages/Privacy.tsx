@@ -1,5 +1,6 @@
 import React from 'react';
 import { Helmet } from 'react-helmet-async';
+import PageIntro from '../components/PageIntro';
 
 const Privacy: React.FC = () => {
   return (
@@ -9,20 +10,18 @@ const Privacy: React.FC = () => {
         <meta name="description" content="Politique de confidentialité de Mboa Hotel - Protection de vos données personnelles" />
       </Helmet>
       
-      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-blue-50 py-12">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 p-8 md:p-12">
-            <div className="text-center mb-12">
-              <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-emerald-500 to-blue-600 rounded-full mb-6">
-                <span className="text-3xl">🔒</span>
-              </div>
-              <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-emerald-600 to-blue-600 bg-clip-text text-transparent mb-4">
-                Politique de confidentialité
-              </h1>
-              <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-                Votre vie privée est notre priorité ! 🛡️ Découvrez comment nous protégeons et utilisons vos données personnelles.
-              </p>
-            </div>
+      <div className="page-shell">
+        <div className="page-container max-w-4xl">
+          <PageIntro
+            eyebrow="Informations juridiques"
+            title="Politique de confidentialité"
+            description="Informations relatives aux données personnelles et à leur utilisation."
+            centered
+          />
+          <div className="page-card p-5 sm:p-8 md:p-12">
+            <p role="note" className="mb-8 rounded-xl border border-[#e4d0a2] bg-[#f8f3e9] p-4 text-sm leading-6 text-[#5c4324]">
+              Brouillon à valider juridiquement et à adapter au fonctionnement réel du service avant publication. Cette démonstration ne traite ni réservation ni paiement ; ne saisissez aucune donnée bancaire.
+            </p>
             
             <div className="prose max-w-none">
               <div className="bg-emerald-50 rounded-2xl p-6 mb-8 border-l-4 border-emerald-400">
@@ -66,7 +65,7 @@ const Privacy: React.FC = () => {
                     </div>
                     <div className="flex items-start space-x-3 bg-white/60 rounded-xl p-4">
                       <span className="text-xl mt-1">💳</span>
-                      <span className="text-gray-700">Informations de paiement : données de carte bancaire (traitées de manière sécurisée)</span>
+                      <span className="text-gray-700">Aucune information bancaire n’est collectée ou traitée par cette démonstration. N’entrez pas de données de carte.</span>
                     </div>
                     <div className="flex items-start space-x-3 bg-white/60 rounded-xl p-4">
                       <span className="text-xl mt-1">🌐</span>
@@ -295,7 +294,7 @@ const Privacy: React.FC = () => {
 
               {/* Message de fin sympathique */}
               <div className="text-center mt-12 mb-8">
-                <div className="bg-gradient-to-r from-emerald-500 to-blue-600 rounded-3xl p-8 text-white">
+                <div className="rounded-3xl bg-[#174c3a] p-8 text-white">
                   <div className="text-4xl mb-4">🛡️</div>
                   <h3 className="text-2xl font-bold mb-2">Vos données en sécurité !</h3>
                   <p className="text-emerald-100">

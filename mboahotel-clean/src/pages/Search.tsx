@@ -3,7 +3,9 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { Search as SearchIcon, MapPin, Calendar, Users, Star, Wifi, Car, Coffee, Waves, Plane, UtensilsCrossed, Presentation, Snowflake, Heart, Filter, ChevronDown } from 'lucide-react';
 import Pagination from '../components/Pagination';
 import LocationSearchSimple from '../components/LocationSearchSimple';
+import FavoriteButton from '../components/FavoriteButton';
 import { calculateDistance, sortHotelsByDistance, formatDistance } from '../utils/geolocation';
+import PageIntro from '../components/PageIntro';
 
 interface Hotel {
   id: string;
@@ -24,7 +26,7 @@ interface Hotel {
   distance?: number;
 }
 
-const mockHotels: Hotel[] = [
+export const mockHotels: Hotel[] = [
   {
     id: '1',
     name: 'Hôtel La Falaise',
@@ -124,7 +126,7 @@ const mockHotels: Hotel[] = [
     coordinates: { latitude: 5.9597, longitude: 10.1494 }
   },
   {
-    id: '4',
+    id: '8',
     name: 'Hôtel Ibis Douala',
     type: 'Hôtel 3 étoiles',
     location: 'Bonanjo, Douala',
@@ -138,7 +140,7 @@ const mockHotels: Hotel[] = [
     coordinates: { latitude: 4.0483, longitude: 9.7043 }
   },
   {
-    id: '5',
+    id: '9',
     name: 'Hôtel Altitel Bafoussam',
     type: 'Hôtel 3 étoiles',
     location: 'Centre-ville, Bafoussam',
@@ -152,7 +154,7 @@ const mockHotels: Hotel[] = [
     coordinates: { latitude: 5.4781, longitude: 10.4167 }
   },
   {
-    id: '6',
+    id: '10',
     name: 'Ayaba Hotel Bamenda',
     type: 'Hôtel 4 étoiles',
     location: 'Commercial Avenue, Bamenda',
@@ -166,7 +168,7 @@ const mockHotels: Hotel[] = [
     coordinates: { latitude: 5.9597, longitude: 10.1494 }
   },
   {
-    id: '7',
+    id: '11',
     name: 'Hôtel Djeuga Palace',
     type: 'Hôtel 4 étoiles',
     location: 'Centre-ville, Yaoundé',
@@ -180,7 +182,7 @@ const mockHotels: Hotel[] = [
     coordinates: { latitude: 3.8667, longitude: 11.5167 }
   },
   {
-    id: '8',
+    id: '12',
     name: 'Pullman Douala Rabingha',
     type: 'Hôtel 5 étoiles',
     location: 'Rabingha, Douala',
@@ -194,7 +196,7 @@ const mockHotels: Hotel[] = [
     coordinates: { latitude: 4.0611, longitude: 9.7879 }
   },
   {
-    id: '9',
+    id: '13',
     name: 'Hôtel Franco',
     type: 'Hôtel 3 étoiles',
     location: 'Mvan, Yaoundé',
@@ -208,7 +210,7 @@ const mockHotels: Hotel[] = [
     coordinates: { latitude: 3.8580, longitude: 11.5123 }
   },
   {
-    id: '10',
+    id: '14',
     name: 'Résidence La Fontaine',
     type: 'Résidence 2 étoiles',
     location: 'Bafoussam',
@@ -222,7 +224,7 @@ const mockHotels: Hotel[] = [
     coordinates: { latitude: 5.4681, longitude: 10.4067 }
   },
   {
-    id: '11',
+    id: '15',
     name: 'Presbyterian Guest House',
     type: 'Auberge 2 étoiles',
     location: 'Station Hill, Bamenda',
@@ -236,7 +238,7 @@ const mockHotels: Hotel[] = [
     coordinates: { latitude: 5.9697, longitude: 10.1594 }
   },
   {
-    id: '12',
+    id: '16',
     name: 'Hôtel des Députés',
     type: 'Hôtel 3 étoiles',
     location: 'Quartier du Lac, Yaoundé',
@@ -252,7 +254,7 @@ const mockHotels: Hotel[] = [
 ];
 
 const Search: React.FC = () => {
-  const [urlSearchParams] = useSearchParams();
+  const [urlSearchParams, setUrlSearchParams] = useSearchParams();
   const [error, setError] = useState<string | null>(null);
   
   const [searchParams, setSearchParams] = useState({
@@ -516,7 +518,7 @@ const Search: React.FC = () => {
   const currentHotels = filteredAndSortedHotels.slice(startIndex, endIndex);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="page-shell !py-0">
       {/* Barre de recherche compacte */}
       <div className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 py-4">
@@ -573,20 +575,20 @@ const Search: React.FC = () => {
             </div>
             
             {/* Dates - Responsive */}
-            <div className="flex items-center space-x-2 w-full lg:w-auto">
+            <div className="grid w-full grid-cols-[auto_minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 lg:flex lg:w-auto">
               <Calendar className="w-5 h-5 text-gray-400 flex-shrink-0" />
               <input
                 type="date"
                 value={searchParams.checkIn}
                 onChange={(e) => setSearchParams(prev => ({ ...prev, checkIn: e.target.value }))}
-                className="input flex-1 lg:w-36"
+                className="input min-w-0 w-full lg:w-36"
               />
               <span className="text-gray-400">-</span>
               <input
                 type="date"
                 value={searchParams.checkOut}
                 onChange={(e) => setSearchParams(prev => ({ ...prev, checkOut: e.target.value }))}
-                className="input flex-1 lg:w-36"
+                className="input min-w-0 w-full lg:w-36"
               />
             </div>
             
@@ -614,7 +616,7 @@ const Search: React.FC = () => {
                 if (searchParams.checkOut) params.set('checkOut', searchParams.checkOut);
                 params.set('guests', searchParams.guests.toString());
                 
-                window.history.pushState({}, '', `/search?${params.toString()}`);
+                setUrlSearchParams(params);
               }}
               className="btn-primary flex items-center justify-center space-x-2 w-full lg:w-auto"
             >
@@ -625,7 +627,12 @@ const Search: React.FC = () => {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-6">
+      <div className="page-container py-8">
+        <PageIntro
+          eyebrow="Explorer le Cameroun"
+          title="Trouvez votre prochain séjour"
+          description={`${filteredAndSortedHotels.length} hébergement${filteredAndSortedHotels.length === 1 ? '' : 's'} dans notre aperçu. Les informations sont indicatives.`}
+        />
         {/* Recherche géolocalisée */}
         <div className="mb-6">
           {error && (
@@ -1063,12 +1070,13 @@ const Search: React.FC = () => {
                 <div key={hotel.id} className="bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow">
                   <div className="flex flex-col sm:flex-row">
                     {/* Image - Responsive */}
-                    <div className="w-full sm:w-64 h-48 sm:h-48 flex-shrink-0 image-container sm:rounded-l-lg">
+                    <div className="relative h-48 w-full flex-shrink-0 image-container sm:w-64 sm:rounded-l-lg">
                       <img 
                         src={hotel.image} 
                         alt={hotel.name}
                         className="hotel-image-hover w-full h-full object-cover"
                       />
+                      <FavoriteButton hotelId={hotel.id} />
                     </div>
 
                     {/* Informations - Responsive */}

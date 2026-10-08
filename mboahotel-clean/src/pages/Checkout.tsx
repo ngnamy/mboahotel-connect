@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 
 const Checkout: React.FC = () => {
-  const { state, clearCart } = useCart();
+  const { state } = useCart();
   const navigate = useNavigate();
   
   const [formData, setFormData] = useState({
@@ -28,7 +28,7 @@ const Checkout: React.FC = () => {
   });
   
   const [paymentMethod, setPaymentMethod] = useState('card');
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [availabilityMessage, setAvailabilityMessage] = useState('');
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -40,29 +40,13 @@ const Checkout: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsProcessing(true);
-
-    // Simulation du traitement du paiement
-    setTimeout(() => {
-      // Vider le panier
-      clearCart();
-      
-      // Rediriger vers une page de confirmation
-      navigate('/booking-success', {
-        state: {
-          bookingId: `MHC-${Date.now().toString().slice(-8)}`,
-          customerInfo: formData,
-          items: state.items,
-          total: state.total
-        }
-      });
-    }, 3000);
+    setAvailabilityMessage('La réservation et le paiement ne sont pas encore disponibles. Aucune commande n’a été transmise.');
   };
 
   if (state.items.length === 0) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
+      <div className="page-shell flex items-center justify-center">
+        <div className="page-card mx-4 max-w-lg p-8 text-center">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">Panier vide</h2>
           <p className="text-gray-600 mb-6">Votre panier est vide. Ajoutez des chambres pour continuer.</p>
           <button
@@ -77,8 +61,8 @@ const Checkout: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-4xl mx-auto px-4">
+    <div className="page-shell">
+      <div className="page-container max-w-5xl">
         {/* En-tête */}
         <div className="mb-8">
           <button
@@ -88,16 +72,20 @@ const Checkout: React.FC = () => {
             <ArrowLeft className="w-4 h-4 mr-2" />
             Retour au panier
           </button>
-          <h1 className="text-3xl font-bold text-gray-900">Finaliser la commande</h1>
-          <p className="text-gray-600 mt-2">Complétez vos informations pour confirmer votre réservation</p>
+          <h1 className="page-title">Finaliser votre séjour</h1>
+          <p className="page-description text-base">Consultez votre sélection. La confirmation de réservation n’est pas encore active.</p>
         </div>
 
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Formulaire */}
           <div className="lg:col-span-2">
             <form onSubmit={handleSubmit} className="space-y-6">
+              {availabilityMessage && <p role="alert" className="rounded-xl border border-[#e4d0a2] bg-[#f8f3e9] p-4 text-sm text-[#5c4324]">{availabilityMessage}</p>}
+              <div className="rounded-xl border border-[#e4d0a2] bg-[#f8f3e9] p-4 text-sm leading-6 text-[#5c4324]">
+                Cette version ne transmet aucune réservation et ne traite aucun paiement. Les options ci-dessous sont présentées à titre d’aperçu.
+              </div>
               {/* Informations personnelles */}
-              <div className="bg-white rounded-lg shadow-sm p-6">
+              <div className="page-card p-5 sm:p-6">
                 <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
                   <User className="w-5 h-5 mr-2" />
                   Informations personnelles
@@ -192,7 +180,7 @@ const Checkout: React.FC = () => {
               </div>
 
               {/* Méthode de paiement */}
-              <div className="bg-white rounded-lg shadow-sm p-6">
+              <div className="page-card p-5 sm:p-6">
                 <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
                   <CreditCard className="w-5 h-5 mr-2" />
                   Méthode de paiement
@@ -242,24 +230,17 @@ const Checkout: React.FC = () => {
 
               <button
                 type="submit"
-                disabled={isProcessing}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-4 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center min-h-[56px] text-lg"
+                disabled
+                className="btn-primary w-full cursor-not-allowed opacity-60"
               >
-                {isProcessing ? (
-                  <div className="flex items-center justify-center">
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                    Traitement en cours...
-                  </div>
-                ) : (
-                  `Confirmer et payer ${state.total.toLocaleString()} XAF`
-                )}
+                Réservation indisponible
               </button>
             </form>
           </div>
 
           {/* Récapitulatif */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg shadow-sm p-6 sticky top-6">
+            <div className="page-card p-5 sm:sticky sm:top-24 sm:p-6">
               <h3 className="text-xl font-bold text-gray-900 mb-4">Récapitulatif</h3>
               
               <div className="space-y-4 mb-6">
@@ -291,23 +272,23 @@ const Checkout: React.FC = () => {
 
               <div className="border-t pt-4 mb-6">
                 <div className="flex justify-between items-center">
-                  <span className="text-lg font-semibold text-gray-900">Total</span>
+                  <span className="text-lg font-semibold text-gray-900">Total indicatif</span>
                   <span className="text-2xl font-bold text-blue-600">
                     {state.total.toLocaleString()} XAF
                   </span>
                 </div>
                 <p className="text-sm text-gray-500 mt-1">
-                  Taxes et frais inclus
+                  Taxes et frais à confirmer auprès de l’établissement
                 </p>
               </div>
 
-              <div className="bg-green-50 p-4 rounded-lg">
+              <div className="rounded-xl border border-[#e4d0a2] bg-[#f8f3e9] p-4">
                 <div className="flex items-center text-green-800 text-sm">
                   <Shield className="w-4 h-4 mr-2" />
                   <span>Paiement 100% sécurisé</span>
                 </div>
-                <p className="text-xs text-green-600 mt-1">
-                  Vos données sont protégées par un cryptage SSL
+                <p className="mt-1 text-xs text-[#76552b]">
+                  Aucun paiement n’est traité dans cette version.
                 </p>
               </div>
             </div>

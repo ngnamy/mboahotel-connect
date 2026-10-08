@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Building2, LogOut, Menu, User, X } from 'lucide-react';
+import { Building2, Heart, LogOut, Menu, User, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import CartIcon from './CartIcon';
 
@@ -19,7 +19,7 @@ const Navbar: React.FC = () => {
 
   const linkClass = (path: string) =>
     `rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-      location.pathname === path
+      (path === '/' ? location.pathname === path : location.pathname.startsWith(path))
         ? 'text-[#174c3a]'
         : 'text-[#59645d] hover:text-[#174c3a]'
     }`;
@@ -46,6 +46,7 @@ const Navbar: React.FC = () => {
           <div className="hidden items-center gap-1 lg:flex">
             <Link to="/" className={linkClass('/')}>Accueil</Link>
             <Link to="/search" className={linkClass('/search')}>Explorer</Link>
+            <Link to="/favorites" className={linkClass('/favorites')}>Favoris</Link>
             <Link to="/about" className={linkClass('/about')}>À propos</Link>
             <Link to="/contact" className={linkClass('/contact')}>Contact</Link>
           </div>
@@ -105,6 +106,9 @@ const Navbar: React.FC = () => {
             <div className="grid gap-1">
               <Link to="/" onClick={closeMenu} className={linkClass('/')}>Accueil</Link>
               <Link to="/search" onClick={closeMenu} className={linkClass('/search')}>Explorer les hôtels</Link>
+              <Link to="/favorites" onClick={closeMenu} className={linkClass('/favorites')}>
+                <Heart aria-hidden="true" className="mr-2 inline h-4 w-4" /> Mes favoris
+              </Link>
               <Link to="/about" onClick={closeMenu} className={linkClass('/about')}>À propos</Link>
               <Link to="/contact" onClick={closeMenu} className={linkClass('/contact')}>Contact</Link>
               {user ? (

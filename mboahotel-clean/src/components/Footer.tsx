@@ -26,6 +26,7 @@ const Footer: React.FC = () => (
           <h2 className="text-sm font-semibold uppercase tracking-[0.16em] text-white/50">Explorer</h2>
           <ul className="mt-5 space-y-3 text-sm">
             <li><Link className="text-white/80 transition-colors hover:text-white" to="/search">Tous les hôtels</Link></li>
+            <li><Link className="text-white/80 transition-colors hover:text-white" to="/testimonials">Témoignages</Link></li>
             <li><Link className="text-white/80 transition-colors hover:text-white" to="/about">À propos</Link></li>
             <li><Link className="text-white/80 transition-colors hover:text-white" to="/faq">Questions fréquentes</Link></li>
             <li><Link className="text-white/80 transition-colors hover:text-white" to="/contact">Nous contacter</Link></li>

@@ -36,6 +36,8 @@ import BookingConfirmation from './pages/BookingConfirmation';
 import Privacy from './pages/Privacy';
 import Terms from './pages/Terms';
 import NotFound from './pages/NotFound';
+import Favorites from './pages/Favorites';
+import Testimonials from './pages/Testimonials';
 
 // Contexts
 import { AuthProvider } from './contexts/AuthContext';
@@ -50,9 +52,9 @@ function App() {
         <AuthProvider>
           <CartProvider>
             <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-              <div className="min-h-screen bg-[#faf9f6]">
+              <div className="app-shell flex min-h-screen flex-col bg-[#faf9f6]">
             <Navbar />
-            <main className="flex-1">
+            <main className="flex-1" id="main-content">
               <Routes>
                 <Route path="/" element={<Home />} />
                 <Route path="/about" element={<About />} />
@@ -63,6 +65,8 @@ function App() {
                 <Route path="/register" element={<Register />} />
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/reservations" element={<Reservations />} />
+                <Route path="/favorites" element={<Favorites />} />
+                <Route path="/testimonials" element={<Testimonials />} />
                 <Route path="/contact" element={<Contact />} />
                 <Route path="/cart" element={<Cart />} />
                 <Route path="/checkout" element={<Checkout />} />

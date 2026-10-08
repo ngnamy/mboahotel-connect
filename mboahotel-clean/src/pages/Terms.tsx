@@ -1,5 +1,6 @@
 import React from 'react';
 import { Helmet } from 'react-helmet-async';
+import PageIntro from '../components/PageIntro';
 
 const Terms: React.FC = () => {
   return (
@@ -9,20 +10,18 @@ const Terms: React.FC = () => {
         <meta name="description" content="Conditions d'utilisation de Mboa Hotel - Règles et conditions d'usage de notre plateforme" />
       </Helmet>
       
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 py-12">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 p-8 md:p-12">
-            <div className="text-center mb-12">
-              <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full mb-6">
-                <span className="text-3xl">📋</span>
-              </div>
-              <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-4">
-                Conditions d'utilisation
-              </h1>
-              <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-                Bienvenue chez Mboa Hotel ! 🏨 Voici nos conditions d'utilisation expliquées de manière simple et transparente.
-              </p>
-            </div>
+      <div className="page-shell">
+        <div className="page-container max-w-4xl">
+          <PageIntro
+            eyebrow="Informations juridiques"
+            title="Conditions d’utilisation"
+            description="Informations relatives à l’utilisation de MboaHotel Connect."
+            centered
+          />
+          <div className="page-card p-5 sm:p-8 md:p-12">
+            <p role="note" className="mb-8 rounded-xl border border-[#e4d0a2] bg-[#f8f3e9] p-4 text-sm leading-6 text-[#5c4324]">
+              Brouillon à valider juridiquement avant publication. Cette version de démonstration ne permet ni réservation ni paiement ; les dispositions décrivant ces services ne sont pas actives.
+            </p>
             
             <div className="prose max-w-none">
               <div className="bg-blue-50 rounded-2xl p-6 mb-8 border-l-4 border-blue-400">
@@ -52,7 +51,7 @@ const Terms: React.FC = () => {
                     2. Description du service
                   </h2>
                   <p className="text-gray-700 leading-relaxed mb-4">
-                    Mboa Hotel est une plateforme de réservation d'hôtels en ligne qui permet aux utilisateurs de :
+                    MboaHotel Connect est actuellement une démonstration permettant de parcourir un catalogue indicatif. Les réservations, comptes et paiements ne sont pas opérationnels.
                   </p>
                   <div className="grid md:grid-cols-2 gap-4">
                     <div className="flex items-center space-x-3 bg-white/60 rounded-xl p-3">
@@ -124,8 +123,7 @@ const Terms: React.FC = () => {
                     </h3>
                     <div className="bg-white/60 rounded-xl p-4">
                       <p className="text-gray-700 leading-relaxed">
-                        Les réservations sont confirmées sous réserve de disponibilité. Nous nous réservons le droit 
-                        d'annuler une réservation en cas d'erreur de prix ou d'indisponibilité.
+                        Aucune réservation n’est créée ou confirmée par cette démonstration. Les disponibilités et prix affichés sont indicatifs et doivent être vérifiés directement auprès de l’établissement.
                       </p>
                     </div>
                   </div>
@@ -138,15 +136,15 @@ const Terms: React.FC = () => {
                     <div className="grid md:grid-cols-2 gap-4">
                       <div className="flex items-center space-x-3 bg-white/60 rounded-xl p-4">
                         <span className="text-xl">⏰</span>
-                        <span className="text-gray-700">Paiement requis au moment de la réservation</span>
+                        <span className="text-gray-700">Aucun paiement n’est actuellement accepté sur la plateforme</span>
                       </div>
                       <div className="flex items-center space-x-3 bg-white/60 rounded-xl p-4">
                         <span className="text-xl">💵</span>
-                        <span className="text-gray-700">Prix en FCFA, toutes taxes comprises</span>
+                        <span className="text-gray-700">Les prix affichés sont indicatifs et ne constituent pas une offre</span>
                       </div>
                       <div className="flex items-center space-x-3 bg-white/60 rounded-xl p-4">
                         <span className="text-xl">💳</span>
-                        <span className="text-gray-700">Cartes de crédit et virements acceptés</span>
+                        <span className="text-gray-700">Aucune donnée bancaire ne doit être saisie</span>
                       </div>
                       <div className="flex items-center space-x-3 bg-white/60 rounded-xl p-4">
                         <span className="text-xl">📊</span>
