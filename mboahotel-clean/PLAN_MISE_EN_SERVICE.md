@@ -69,6 +69,10 @@ Une seconde migration, `supabase/migrations/20261008170000_hotel_publication_rev
 
 Cette migration doit être exécutée dans Supabase SQL Editor **après** la migration initiale.
 
+#### Correctif — fonction d’approbation absente
+
+Si l’action « Approuver et publier » renvoie l’erreur `PGRST202` indiquant que `public.review_hotel_publication` est introuvable, appliquer uniquement `supabase/migrations/20261008201000_restore_hotel_publication_review.sql` dans Supabase SQL Editor. Ce correctif recrée la fonction `SECURITY DEFINER`, vérifie le rôle administrateur dans la base, réserve son exécution aux utilisateurs authentifiés et recharge le cache de schéma PostgREST. Il ne modifie aucune table ni ligne existante. Ne pas réexécuter la migration complète de publication ou de gestion des abonnements pour corriger ce cas.
+
 ### Mise à jour — catalogue public Supabase
 
 Les pages d’accueil, de recherche, de fiche établissement et de favoris lisent maintenant les hôtels `approved` depuis Supabase. Les chambres actives sont chargées uniquement pour ces hôtels ; les pages publiques ne s’appuient pas sur les fiches de démonstration dès que Supabase est configuré. En l’absence de configuration, les données de démonstration restent disponibles et sont signalées comme telles.
