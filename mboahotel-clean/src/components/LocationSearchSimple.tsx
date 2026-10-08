@@ -125,7 +125,7 @@ const LocationSearchSimple: React.FC<LocationSearchSimpleProps> = ({
       )}
 
       {/* Boutons d'action */}
-      <div className="flex flex-wrap gap-3">
+      <div className="flex flex-wrap justify-center gap-3 sm:justify-start">
         {!currentLocation ? (
           <button
             onClick={handleGetLocation}
@@ -137,7 +137,7 @@ const LocationSearchSimple: React.FC<LocationSearchSimpleProps> = ({
             ) : (
               <Navigation className="w-4 h-4" />
             )}
-            <span>📍 Utiliser ma position</span>
+            <span>Utiliser ma position</span>
           </button>
         ) : (
           <>
