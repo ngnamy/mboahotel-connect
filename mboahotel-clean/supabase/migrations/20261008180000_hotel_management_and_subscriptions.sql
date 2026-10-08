@@ -406,7 +406,8 @@ create policy "Hoteliers and admins can read subscription plans"
     or exists (
       select 1 from public.hotel_subscriptions subscription
       join public.hotels hotel on hotel.id = subscription.hotel_id
-      where subscription.plan_id = id and hotel.owner_id = auth.uid()
+      where subscription.plan_id = hotel_subscription_plans.id
+        and hotel.owner_id = auth.uid()
     )
   );
 create policy "Admins manage subscription plans"
