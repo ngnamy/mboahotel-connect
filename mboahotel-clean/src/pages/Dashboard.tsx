@@ -16,6 +16,7 @@ const Dashboard: React.FC = () => {
   const { user, refreshProfile } = useAuth();
   const [applications, setApplications] = useState<Application[]>([]);
   const [applicantDetails, setApplicantDetails] = useState<Record<string, { name: string; email: string }>>({});
+  const [reviewHotels, setReviewHotels] = useState<Hotel[]>([]);
   const [hotels, setHotels] = useState<Hotel[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
@@ -46,12 +47,20 @@ const Dashboard: React.FC = () => {
     try {
       const client = requireSupabase();
       if (user.role === 'admin') {
-        const { data, error: queryError } = await client
+        const [{ data, error: applicationsError }, { data: hotelsData, error: hotelsError }] = await Promise.all([
+          client
           .from('partner_applications')
           .select('*')
-          .order('submitted_at', { ascending: false });
-        if (queryError) throw queryError;
+          .order('submitted_at', { ascending: false }),
+          client
+            .from('hotels')
+            .select('*')
+            .order('created_at', { ascending: false }),
+        ]);
+        if (applicationsError) throw applicationsError;
+        if (hotelsError) throw hotelsError;
         setApplications(data ?? []);
+        setReviewHotels(hotelsData ?? []);
         if (data?.length) {
           const { data: profiles, error: profilesError } = await client
             .from('profiles')
@@ -137,6 +146,16 @@ const Dashboard: React.FC = () => {
       });
       if (rpcError) throw rpcError;
     }, approve ? 'Le compte hôtelier a été approuvé.' : 'La demande a été refusée.');
+  };
+
+  const reviewHotel = (hotelId: string, approve: boolean) => {
+    void runAction(async () => {
+      const { error: rpcError } = await requireSupabase().rpc('review_hotel_publication', {
+        p_hotel_id: hotelId,
+        p_approve: approve,
+      });
+      if (rpcError) throw rpcError;
+    }, approve ? 'L’établissement est maintenant publié.' : 'L’établissement a été refusé et ne sera pas visible publiquement.');
   };
 
   const createHotel = (event: FormEvent) => {
@@ -228,6 +247,39 @@ const Dashboard: React.FC = () => {
                     </button>
                     <button type="button" disabled={busy} onClick={() => reviewApplication(application.id, false)} className="btn-secondary">
                       <X aria-hidden="true" className="h-4 w-4" /> Refuser
+                    </button>
+                  </div>
+                )}
+              </article>
+            ))}
+            <div className="pt-6">
+              <h2 className="section-title">Établissements à vérifier</h2>
+              <p className="mt-1 text-sm text-[#68736b]">Seuls les établissements approuvés sont visibles publiquement.</p>
+            </div>
+            {reviewHotels.length === 0 ? (
+              <div className="page-card p-6 text-sm text-[#68736b]">Aucun établissement soumis pour le moment.</div>
+            ) : reviewHotels.map(hotel => (
+              <article key={hotel.id} className="page-card flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h3 className="font-semibold text-[#17251f]">{hotel.name}</h3>
+                  <p className="mt-1 text-sm text-[#68736b]">{hotel.address}, {hotel.city} · {hotel.region}</p>
+                  <p className="mt-1 text-sm text-[#68736b]">{hotel.phone} · {hotel.email}</p>
+                  <p className="mt-1 text-xs text-[#68736b]">Soumis le {new Date(hotel.created_at).toLocaleDateString('fr-FR')}</p>
+                </div>
+                {hotel.status === 'pending' || hotel.status === 'rejected' ? (
+                  <div className="flex flex-wrap gap-2">
+                    <button type="button" disabled={busy} onClick={() => reviewHotel(hotel.id, true)} className="btn-primary">
+                      <Check aria-hidden="true" className="h-4 w-4" /> {hotel.status === 'pending' ? 'Approuver et publier' : 'Publier'}
+                    </button>
+                    {hotel.status === 'pending' && <button type="button" disabled={busy} onClick={() => reviewHotel(hotel.id, false)} className="btn-secondary">
+                      <X aria-hidden="true" className="h-4 w-4" /> Refuser
+                    </button>}
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap items-center gap-3">
+                    <span className="rounded-full bg-[#eef4ef] px-3 py-1 text-xs font-semibold text-[#174c3a]">Publié</span>
+                    <button type="button" disabled={busy} onClick={() => reviewHotel(hotel.id, false)} className="btn-secondary min-h-10 px-3 py-2 text-sm">
+                      <X aria-hidden="true" className="h-4 w-4" /> Dépublier
                     </button>
                   </div>
                 )}

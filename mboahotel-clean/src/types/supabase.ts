@@ -158,6 +158,10 @@ export interface Database {
         Args: { p_application_id: string; p_approve: boolean; p_notes?: string | null };
         Returns: undefined;
       };
+      review_hotel_publication: {
+        Args: { p_hotel_id: string; p_approve: boolean };
+        Returns: undefined;
+      };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;

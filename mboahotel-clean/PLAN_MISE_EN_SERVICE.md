@@ -47,6 +47,12 @@ La migration utilise une fonction `SECURITY DEFINER` bornée pour vérifier le r
 - Les établissements soumis restent en attente de publication. L’ajout et l’activation des types de chambres sont disponibles dans l’espace hôtelier, mais la disponibilité par date, les photos, le paiement, les e-mails/SMS et l’approbation de fiche ne sont pas encore intégrés.
 - Aucun projet Supabase, secret public de configuration ou environnement de test n’est fourni dans le dépôt. Les parcours connectés ne peuvent donc pas être testés de bout en bout avant la configuration ci-dessus.
 
+### Mise à jour — validation des établissements
+
+Une seconde migration, `supabase/migrations/20261008170000_hotel_publication_review.sql`, ajoute l’action d’administration permettant d’approuver ou de refuser la publication d’un établissement. Le tableau de bord admin liste désormais les demandes partenaires et les fiches hôtelières, avec état et coordonnées de contact. Seuls les établissements dont le statut est `approved` sont visibles par les visiteurs anonymes selon les règles RLS existantes ; le tableau de bord hôtelier continue de ne voir que ses propres fiches.
+
+Cette migration doit être exécutée dans Supabase SQL Editor **après** la migration initiale. L’intégration de ces enregistrements au catalogue de recherche et aux pages publiques, notamment le mappage des champs et des images, reste à réaliser avant que les fiches approuvées n’apparaissent dans la recherche.
+
 ## Périmètre et vérifications
 
 Audit du contenu présent dans `src/` (pages, composants, contextes, hooks, types, utilitaires), de `index.html`, `package.json`, `vite.config.ts`, `public/`, des deux README et de la configuration de redirection Netlify. Les observations ci-dessous sont fondées sur le code du dépôt, pas sur un environnement de production ou un compte de prestataire.
