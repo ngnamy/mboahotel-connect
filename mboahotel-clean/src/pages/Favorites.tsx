@@ -5,9 +5,11 @@ import { mockHotels } from './Search'; // Réutilisation des données de la page
 import { Heart, Star, MapPin } from 'lucide-react';
 import FavoriteButton from '../components/FavoriteButton';
 import PageIntro from '../components/PageIntro';
+import { usePublicHotels } from '../lib/publicHotels';
 
 const Favorites: React.FC = () => {
   const { user, favoriteHotelIds } = useAuth();
+  const { hotels: publishedHotels, isConfigured, isLoading, error } = usePublicHotels();
 
   if (!user) {
     return (
@@ -24,7 +26,27 @@ const Favorites: React.FC = () => {
     );
   }
 
-  const favoriteHotels = mockHotels.filter(hotel => favoriteHotelIds.includes(hotel.id));
+  const favoriteHotels = isConfigured
+    ? publishedHotels
+        .filter(hotel => favoriteHotelIds.includes(hotel.id))
+        .map(hotel => ({
+          id: hotel.id,
+          name: hotel.name,
+          image: hotel.image,
+          location: `${hotel.address}, ${hotel.city}`,
+          price: hotel.price,
+          rating: 0,
+        }))
+    : mockHotels
+        .filter(hotel => favoriteHotelIds.includes(hotel.id))
+        .map(hotel => ({
+          id: hotel.id,
+          name: hotel.name,
+          image: hotel.image,
+          location: hotel.location,
+          price: hotel.price,
+          rating: hotel.rating,
+        }));
 
   return (
     <div className="page-shell">
@@ -34,7 +56,11 @@ const Favorites: React.FC = () => {
           title="Mes hébergements favoris"
           description="Les favoris sont conservés localement sur cet appareil et ne sont pas synchronisés avec un serveur."
         />
-        {favoriteHotels.length === 0 ? (
+        {isLoading ? (
+          <div role="status" className="page-card p-6 text-center text-sm text-[#68736b]">Chargement de vos favoris…</div>
+        ) : error ? (
+          <div role="alert" className="page-card border-red-200 bg-red-50 p-6 text-sm text-red-800">{error}</div>
+        ) : favoriteHotels.length === 0 ? (
           <div className="page-card p-8 text-center sm:p-12">
             <Heart aria-hidden="true" className="mx-auto h-12 w-12 text-[#7b847d]" />
             <h3 className="mt-2 text-lg font-medium text-gray-900">Vous n'avez pas encore de favoris</h3>
@@ -61,21 +87,23 @@ const Favorites: React.FC = () => {
                       <h3 className="pr-2 text-lg font-semibold text-[#17251f] transition-colors group-hover:text-[#174c3a]">
                         {hotel.name}
                       </h3>
-                      <div className="flex items-center space-x-1 flex-shrink-0">
-                        <Star className="h-4 w-4 fill-current text-[#b88b3d]" />
-                        <span className="text-sm font-medium text-gray-700">{hotel.rating}</span>
-                      </div>
+                      {hotel.rating > 0 && (
+                        <div className="flex items-center space-x-1 flex-shrink-0">
+                          <Star className="h-4 w-4 fill-current text-[#b88b3d]" />
+                          <span className="text-sm font-medium text-gray-700">{hotel.rating}</span>
+                        </div>
+                      )}
                     </div>
                     <p className="text-gray-600 mb-3 flex items-center text-sm">
                       <MapPin className="h-4 w-4 mr-1" />
                       {hotel.location}
                     </p>
-                    <div>
+                    {hotel.price > 0 ? <div>
                       <span className="text-xl font-bold text-gray-900">
                         {hotel.price.toLocaleString()}
                       </span>
                       <span className="text-sm text-gray-600"> FCFA / nuit</span>
-                    </div>
+                    </div> : <p className="text-sm text-gray-600">Tarif à confirmer</p>}
                   </div>
                 </Link>
               </div>

@@ -6,6 +6,7 @@ import LocationSearchSimple from '../components/LocationSearchSimple';
 import FavoriteButton from '../components/FavoriteButton';
 import { calculateDistance, sortHotelsByDistance, formatDistance } from '../utils/geolocation';
 import PageIntro from '../components/PageIntro';
+import { usePublicHotels } from '../lib/publicHotels';
 
 interface Hotel {
   id: string;
@@ -19,7 +20,7 @@ interface Hotel {
   image: string;
   amenities: string[];
   stars: number;
-  coordinates: {
+  coordinates?: {
     latitude: number;
     longitude: number;
   };
@@ -254,6 +255,7 @@ export const mockHotels: Hotel[] = [
 ];
 
 const Search: React.FC = () => {
+  const { hotels: publishedHotels, isConfigured, isLoading: isLoadingPublishedHotels, error: publishedHotelsError } = usePublicHotels();
   const [urlSearchParams, setUrlSearchParams] = useSearchParams();
   const [error, setError] = useState<string | null>(null);
   
@@ -285,6 +287,22 @@ const Search: React.FC = () => {
     city: string;
     details?: any;
   } | null>(null);
+
+  const catalogHotels: Hotel[] = isConfigured
+    ? publishedHotels.map(hotel => ({
+        id: hotel.id,
+        name: hotel.name,
+        type: 'Hébergement partenaire',
+        location: hotel.address,
+        city: hotel.city,
+        rating: 0,
+        reviewCount: 0,
+        price: hotel.price,
+        image: hotel.image,
+        amenities: hotel.amenities,
+        stars: hotel.stars,
+      }))
+    : mockHotels;
 
   // Mettre à jour les paramètres de recherche quand l'URL change
   useEffect(() => {
@@ -438,8 +456,6 @@ const Search: React.FC = () => {
     if (searchParams.destination && searchParams.destination.trim() !== '') {
       const searchTerm = searchParams.destination.toLowerCase().trim();
       console.log('Filtering hotels for:', searchTerm);
-      console.log('Available hotels:', mockHotels.map(h => ({ name: h.name, city: h.city })));
-      
       // Si on a une géolocalisation, on peut être plus flexible et montrer tous les hôtels
       // triés par distance plutôt que de filtrer strictement par ville
       if (userLocation) {
@@ -454,7 +470,6 @@ const Search: React.FC = () => {
         );
       }
       
-      console.log('Filtered hotels:', filtered.length);
     }
 
     // Filtre par prix
@@ -508,7 +523,7 @@ const Search: React.FC = () => {
   };
 
   // Hôtels avec distances calculées, puis filtrés et triés
-  const hotelsWithDistances = calculateHotelDistances(mockHotels);
+  const hotelsWithDistances = calculateHotelDistances(catalogHotels);
   const filteredAndSortedHotels = getSortedHotels(getFilteredHotels());
 
   // Calcul de la pagination
@@ -976,9 +991,9 @@ const Search: React.FC = () => {
                       )}
                     </span>
                   </span>
-                  {filteredAndSortedHotels.length !== mockHotels.length && (
+                  {filteredAndSortedHotels.length !== catalogHotels.length && (
                     <div className="text-xs sm:text-sm text-gray-500 mt-1">
-                      Sur {mockHotels.length} hôtels au total
+                      Sur {catalogHotels.length} hôtels au total
                     </div>
                   )}
                 </div>
@@ -1017,7 +1032,15 @@ const Search: React.FC = () => {
 
             {/* Liste des hôtels */}
             <div className="space-y-6">
-              {filteredAndSortedHotels.length === 0 ? (
+              {isLoadingPublishedHotels ? (
+                <div role="status" className="page-card p-8 text-center text-sm text-[#68736b]">
+                  Chargement des établissements publiés…
+                </div>
+              ) : publishedHotelsError ? (
+                <div role="alert" className="page-card border-red-200 bg-red-50 p-6 text-sm text-red-800">
+                  {publishedHotelsError}
+                </div>
+              ) : filteredAndSortedHotels.length === 0 ? (
                 <div className="bg-white rounded-lg shadow-sm p-12 text-center">
                   <div className="text-gray-400 mb-4">
                     <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1098,24 +1121,28 @@ const Search: React.FC = () => {
                           </div>
                         </div>
                         
-                        <div className="flex sm:flex-col items-center sm:items-end sm:text-right">
-                          <div className="flex items-center">
-                            <div className="bg-blue-600 text-white px-2 py-1 rounded text-sm font-semibold mr-2">
-                              {hotel.rating}
-                            </div>
-                            <div>
-                              <div className="text-sm font-medium">{getRatingText(hotel.rating)}</div>
-                              <div className="text-xs text-gray-500">{hotel.reviewCount} avis</div>
+                        {hotel.rating > 0 && (
+                          <div className="flex sm:flex-col items-center sm:items-end sm:text-right">
+                            <div className="flex items-center">
+                              <div className="bg-blue-600 text-white px-2 py-1 rounded text-sm font-semibold mr-2">
+                                {hotel.rating}
+                              </div>
+                              <div>
+                                <div className="text-sm font-medium">{getRatingText(hotel.rating)}</div>
+                                <div className="text-xs text-gray-500">{hotel.reviewCount} avis</div>
+                              </div>
                             </div>
                           </div>
-                        </div>
+                        )}
                       </div>
 
                       {/* Étoiles */}
                       <div className="flex items-center mb-3">
-                        {Array.from({ length: hotel.stars }).map((_, i) => (
-                          <Star key={i} className="w-4 h-4 text-yellow-400 fill-current" />
-                        ))}
+                        {hotel.stars > 0
+                          ? Array.from({ length: hotel.stars }).map((_, i) => (
+                              <Star key={i} className="w-4 h-4 text-yellow-400 fill-current" />
+                            ))
+                          : isConfigured && <span className="text-xs text-gray-500">Classement non renseigné</span>}
                       </div>
 
                       {/* Points forts - Responsive */}
@@ -1136,10 +1163,14 @@ const Search: React.FC = () => {
                       {/* Prix et bouton - Responsive */}
                       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-3">
                         <div>
-                          <div className="text-xl sm:text-2xl font-bold text-gray-900">
-                            {hotel.price.toLocaleString()} XAF
-                          </div>
-                          <div className="text-sm text-gray-600">par nuit, taxes incluses</div>
+                          {hotel.price > 0 ? (
+                            <>
+                              <div className="text-xl sm:text-2xl font-bold text-gray-900">{hotel.price.toLocaleString()} XAF</div>
+                              <div className="text-sm text-gray-600">à partir de / nuit</div>
+                            </>
+                          ) : (
+                            <div className="text-sm font-medium text-gray-600">Tarif à confirmer auprès de l’établissement</div>
+                          )}
                         </div>
                         
                         <Link 

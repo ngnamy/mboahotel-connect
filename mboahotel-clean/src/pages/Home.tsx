@@ -11,6 +11,7 @@ import {
   Star,
 } from 'lucide-react';
 import SearchForm from '../components/SearchForm';
+import { usePublicHotels } from '../lib/publicHotels';
 
 const featuredHotels = [
   {
@@ -60,7 +61,21 @@ const destinations = [
   },
 ];
 
-const Home: React.FC = () => (
+const Home: React.FC = () => {
+  const { hotels: publishedHotels, isConfigured, isLoading, error } = usePublicHotels();
+  const hotelsToFeature = isConfigured
+    ? publishedHotels.slice(0, 2).map(hotel => ({
+        id: hotel.id,
+        name: hotel.name,
+        city: hotel.city,
+        location: hotel.address,
+        price: hotel.price,
+        image: hotel.image,
+        features: hotel.amenities,
+      }))
+    : featuredHotels;
+
+  return (
   <div className="overflow-hidden">
     <section className="relative isolate min-h-[620px] bg-[#103b2d] sm:min-h-[680px]">
       <img
@@ -136,7 +151,9 @@ const Home: React.FC = () => (
             Quelques adresses à découvrir
           </h2>
           <p className="mt-3 text-base leading-7 text-[#68736b]">
-            Parcourez les détails d’établissements présents dans notre aperçu.
+            {isConfigured
+              ? 'Découvrez les établissements approuvés et publiés par nos partenaires.'
+              : 'Parcourez un aperçu de démonstration en attendant la configuration du catalogue.'}
           </p>
         </div>
         <Link to="/search" className="group inline-flex min-h-[44px] items-center gap-2 self-start text-sm font-semibold text-[#174c3a] hover:text-[#103b2d] sm:self-auto">
@@ -145,8 +162,13 @@ const Home: React.FC = () => (
         </Link>
       </div>
 
+      {isLoading ? (
+        <p role="status" className="py-8 text-sm text-[#68736b]">Chargement des établissements publiés…</p>
+      ) : error ? (
+        <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">{error}</p>
+      ) : hotelsToFeature.length ? (
       <div className="grid gap-6 lg:grid-cols-2">
-        {featuredHotels.map(hotel => (
+        {hotelsToFeature.map(hotel => (
           <Link
             key={hotel.id}
             to={`/hotel/${hotel.id}`}
@@ -177,8 +199,12 @@ const Home: React.FC = () => (
                 <p className="text-sm text-[#68736b]">
                   <span className="block text-xs">À partir de</span>
                   <span className="mt-1 inline-flex items-baseline gap-1">
-                    <strong className="text-xl font-semibold text-[#17251f]">{hotel.price.toLocaleString('fr-FR')}</strong>
-                    <span className="text-xs">XAF / nuit</span>
+                    {hotel.price > 0 ? (
+                      <>
+                        <strong className="text-xl font-semibold text-[#17251f]">{hotel.price.toLocaleString('fr-FR')}</strong>
+                        <span className="text-xs">XAF / nuit</span>
+                      </>
+                    ) : <strong className="text-sm font-semibold text-[#68736b]">Tarif à confirmer</strong>}
                   </span>
                 </p>
                 <span className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-[#e9f0eb] text-[#174c3a] transition-colors group-hover:bg-[#174c3a] group-hover:text-white">
@@ -189,9 +215,16 @@ const Home: React.FC = () => (
           </Link>
         ))}
       </div>
-      <p className="mt-4 text-xs leading-5 text-[#858d87]">
-        Les informations, photos, tarifs et disponibilités de cet aperçu restent à vérifier avant toute réservation.
-      </p>
+      ) : (
+        <div className="page-card p-6 text-sm leading-6 text-[#68736b]">
+          Aucun établissement n’est publié pour le moment. Revenez bientôt pour découvrir les premières adresses partenaires.
+        </div>
+      )}
+      {!isConfigured && (
+        <p className="mt-4 text-xs leading-5 text-[#858d87]">
+          Les informations, photos, tarifs et disponibilités de cet aperçu restent à vérifier avant toute réservation.
+        </p>
+      )}
     </section>
 
     <section className="bg-[#f2f0e9] py-16 lg:py-20">
@@ -253,6 +286,7 @@ const Home: React.FC = () => (
       </div>
     </section>
   </div>
-);
+  );
+};
 
 export default Home;

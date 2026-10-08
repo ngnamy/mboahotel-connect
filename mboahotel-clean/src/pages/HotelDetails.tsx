@@ -24,6 +24,7 @@ import ReviewForm from '../components/ReviewForm';
 import ImageGalleryModal from '../components/ImageGalleryModal';
 import FavoriteButton from '../components/FavoriteButton';
 import { mockHotels as catalogHotels } from './Search';
+import { usePublicHotels } from '../lib/publicHotels';
 
 // --- Définitions des types ---
 
@@ -57,6 +58,8 @@ interface Hotel {
   amenities: string[];
   stars: number;
   description: string;
+  phone?: string;
+  email?: string;
   rooms: Room[];
   policies: {
     checkIn: string;
@@ -150,9 +153,40 @@ const getRatingText = (rating: number) => {
 const HotelDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { addItem } = useCart();
-  const detailedHotel = mockHotels.find(h => h.id === id);
-  const catalogHotel = catalogHotels.find(h => h.id === id);
-  const hotel: Hotel | undefined = detailedHotel || (catalogHotel ? {
+  const { hotels: publishedHotels, isConfigured, isLoading, error: publishedHotelsError } = usePublicHotels(id);
+  const publishedHotel = publishedHotels[0];
+  const detailedHotel = !isConfigured ? mockHotels.find(h => h.id === id) : undefined;
+  const catalogHotel = !isConfigured ? catalogHotels.find(h => h.id === id) : undefined;
+  const isLiveListing = isConfigured && Boolean(publishedHotel);
+  const liveHotel: Hotel | undefined = publishedHotel ? {
+    id: publishedHotel.id,
+    name: publishedHotel.name,
+    location: `${publishedHotel.address}, ${publishedHotel.city}`,
+    city: publishedHotel.city,
+    rating: 0,
+    reviewCount: 0,
+    price: publishedHotel.price,
+    images: [publishedHotel.image, publishedHotel.image, publishedHotel.image],
+    amenities: publishedHotel.amenities,
+    stars: publishedHotel.stars,
+    description: publishedHotel.description || 'La description détaillée de cet établissement sera bientôt disponible. Contactez directement l’hôtel pour en savoir plus.',
+    phone: publishedHotel.phone,
+    email: publishedHotel.email,
+    rooms: publishedHotel.rooms.map(room => ({
+      id: room.id,
+      name: room.name,
+      price: room.price,
+      capacity: room.capacity,
+      images: [publishedHotel.image],
+      availableCount: room.totalUnits,
+    })),
+    policies: {
+      checkIn: 'À confirmer auprès de l’établissement',
+      checkOut: 'À confirmer auprès de l’établissement',
+      cancellation: 'Les conditions de séjour doivent être confirmées directement avec l’établissement.',
+    },
+  } : undefined;
+  const hotel: Hotel | undefined = liveHotel || detailedHotel || (catalogHotel ? {
     id: catalogHotel.id,
     name: catalogHotel.name,
     location: catalogHotel.location,
@@ -193,7 +227,7 @@ const HotelDetails: React.FC = () => {
     return dayAfterTomorrow.toISOString().split('T')[0];
   });
 
-  const initialReviews: Review[] = hotel ? [
+  const initialReviews: Review[] = !isLiveListing && hotel ? [
     {
       id: '1',
       userName: hotel.id === '1' ? 'Marie K.' : 'Jean-Paul M.',
@@ -344,9 +378,15 @@ const HotelDetails: React.FC = () => {
     return (
       <div className="page-shell flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-2xl font-bold">Hôtel non trouvé</h2>
-          <p className="text-gray-600">Désolé, l'hôtel que vous cherchez n'existe pas.</p>
-          <Link to="/" className="mt-4 btn-primary">Retour à l'accueil</Link>
+          {isLoading ? (
+            <p role="status" className="text-sm text-[#68736b]">Chargement de la fiche établissement…</p>
+          ) : (
+            <>
+              <h2 className="text-2xl font-bold">Hôtel non trouvé</h2>
+              <p className="text-gray-600">{publishedHotelsError || "Désolé, l'hôtel que vous cherchez n'existe pas ou n'est pas publié."}</p>
+              <Link to="/search" className="mt-4 btn-primary">Retour à la recherche</Link>
+            </>
+          )}
         </div>
       </div>
     );
@@ -356,7 +396,9 @@ const HotelDetails: React.FC = () => {
     <div className="page-shell !py-0">
       <div className="page-container py-8">
         <p role="note" className="mb-6 rounded-xl border border-[#e4d0a2] bg-[#f8f3e9] p-4 text-sm leading-6 text-[#5c4324]">
-          Fiche de démonstration : établissement, tarifs, avis et disponibilités à confirmer directement auprès de l’hôtel.
+          {isLiveListing
+            ? 'Établissement partenaire publié. Les tarifs et la disponibilité par date sont à confirmer directement auprès de l’hôtel ; les réservations en ligne ne sont pas encore activées.'
+            : 'Fiche de démonstration : établissement, tarifs, avis et disponibilités à confirmer directement auprès de l’hôtel.'}
         </p>
         {feedback && <p role="status" className="mb-6 rounded-xl border border-[#bfd4c4] bg-[#eef4ef] p-4 text-sm leading-6 text-[#103b2d]">{feedback}</p>}
         {/* En-tête */}
@@ -373,13 +415,13 @@ const HotelDetails: React.FC = () => {
               <MapPin className="w-5 h-5 mr-1" />
               <span>{hotel.location}</span>
             </div>
-            <div className="flex items-center">
+            {hotel.rating > 0 && <div className="flex items-center">
               <div className="bg-blue-600 text-white px-2 py-1 rounded font-semibold">
                 {hotel.rating.toFixed(1)}
               </div>
               <span className="ml-2 text-gray-700 font-medium">{getRatingText(hotel.rating)}</span>
               <span className="ml-2 text-gray-500">({hotel.reviewCount} avis)</span>
-            </div>
+            </div>}
           </div>
         </div>
 
@@ -410,18 +452,24 @@ const HotelDetails: React.FC = () => {
               <h2 className="text-2xl font-bold text-gray-900 mb-4">Description</h2>
               <p className="text-gray-700 leading-relaxed mb-6">{hotel.description}</p>
 
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">Équipements populaires</h2>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
-                {hotel.amenities.map(amenity => (
-                  <div key={amenity} className="flex items-center text-gray-700">
-                    <div className="text-blue-600 mr-2">{amenityIcons[amenity] || <Star className="w-5 h-5" />}</div>
-                    <span>{amenity}</span>
+              {hotel.amenities.length > 0 && (
+                <>
+                  <h2 className="text-2xl font-bold text-gray-900 mb-4">Équipements populaires</h2>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+                    {hotel.amenities.map(amenity => (
+                      <div key={amenity} className="flex items-center text-gray-700">
+                        <div className="text-blue-600 mr-2">{amenityIcons[amenity] || <Star className="w-5 h-5" />}</div>
+                        <span>{amenity}</span>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+                </>
+              )}
 
               <h2 className="text-2xl font-bold text-gray-900 mb-4">Chambres disponibles</h2>
-              <div className="space-y-4">
+              {hotel.rooms.length === 0 ? (
+                <p className="rounded-xl bg-[#f5f1e8] p-4 text-sm text-[#5c4324]">Aucun type de chambre actif n’a encore été publié par cet établissement.</p>
+              ) : <div className="space-y-4">
                 {hotel.rooms.map(room => (
                   <div key={room.id} className="border rounded-lg p-4 flex flex-col md:flex-row items-start gap-4">
                     <div 
@@ -441,16 +489,15 @@ const HotelDetails: React.FC = () => {
                       <div className="flex-grow mb-4 sm:mb-0">
                         <h3 className="font-semibold text-lg">{room.name}</h3>
                         <p className="text-sm text-gray-600 mb-1">Capacité: {room.capacity} personnes</p>
-                        <p className={`text-sm font-medium ${room.availableCount > 0 ? (room.availableCount < 4 ? 'text-orange-600' : 'text-green-600') : 'text-red-600'}`}>
-                          {room.availableCount > 0 
-                            ? `Plus que ${room.availableCount} disponible${room.availableCount > 1 ? 's' : ''}`
-                            : 'Épuisé'
-                          }
-                        </p>
+                        {isLiveListing
+                          ? <p className="text-sm text-gray-600">{room.availableCount} unité{room.availableCount > 1 ? 's' : ''} déclarée{room.availableCount > 1 ? 's' : ''} · Disponibilité à confirmer</p>
+                          : <p className={`text-sm font-medium ${room.availableCount > 0 ? (room.availableCount < 4 ? 'text-orange-600' : 'text-green-600') : 'text-red-600'}`}>
+                              {room.availableCount > 0 ? `Plus que ${room.availableCount} disponible${room.availableCount > 1 ? 's' : ''}` : 'Épuisé'}
+                            </p>}
                       </div>
                       <div className="flex-shrink-0 text-right">
                         <p className="font-bold text-lg mb-2">{room.price.toLocaleString()} XAF / nuit</p>
-                        <div className="flex items-center justify-end space-x-2">
+                        {!isLiveListing && <div className="flex items-center justify-end space-x-2">
                           <button 
                             onClick={() => handleSelectRoom(room.id, -1)}
                             disabled={!selectedRooms[room.id] || selectedRooms[room.id] === 0}
@@ -468,16 +515,21 @@ const HotelDetails: React.FC = () => {
                           >
                             <PlusCircle className="w-5 h-5" />
                           </button>
-                        </div>
+                        </div>}
                       </div>
                     </div>
                   </div>
                 ))}
-              </div>
+              </div>}
             </div>
 
             {/* Section des avis */}
-            <div className="page-card mt-8 p-5 sm:p-6">
+            {isLiveListing ? (
+              <div className="page-card mt-8 p-5 sm:p-6">
+                <h2 className="text-2xl font-bold text-gray-900 mb-3">Avis des clients</h2>
+                <p className="text-sm leading-6 text-gray-600">Les avis ne sont pas encore collectés pour cet établissement.</p>
+              </div>
+            ) : <div className="page-card mt-8 p-5 sm:p-6">
               <h2 className="text-2xl font-bold text-gray-900 mb-4">Avis des clients ({reviews.length})</h2>
               <div className="space-y-6">
                 {reviews.map(review => (
@@ -516,11 +568,22 @@ const HotelDetails: React.FC = () => {
               </button>
 
               <ReviewForm onSubmit={handleReviewSubmit} />
-            </div>
+            </div>}
           </div>
 
           {/* Colonne de droite : Carte de réservation */}
+          {isLiveListing ? (
           <div className="lg:col-span-1">
+            <div className="page-card p-5 sm:sticky sm:top-24 sm:p-6">
+              <h3 className="text-xl font-bold text-gray-900 mb-3">Contacter l’établissement</h3>
+              <p className="mb-5 text-sm leading-6 text-gray-600">La réservation en ligne n’est pas encore disponible. Contactez directement l’établissement pour vérifier les tarifs et les disponibilités de vos dates.</p>
+              <div className="grid gap-3">
+                <a href={`tel:${hotel.phone}`} className="btn-primary w-full">{hotel.phone}</a>
+                <a href={`mailto:${hotel.email}`} className="btn-secondary w-full break-all">{hotel.email}</a>
+              </div>
+            </div>
+          </div>
+          ) : <div className="lg:col-span-1">
             <div className="page-card p-5 sm:sticky sm:top-24 sm:p-6">
               <h3 className="text-xl font-bold text-gray-900 mb-4">Réservation</h3>
               
@@ -620,7 +683,7 @@ const HotelDetails: React.FC = () => {
                 </div>
               </div>
             </div>
-          </div>
+          </div>}
         </div>
       </div>
       {isGalleryOpen && (

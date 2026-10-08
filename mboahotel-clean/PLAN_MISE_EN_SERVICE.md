@@ -51,7 +51,15 @@ La migration utilise une fonction `SECURITY DEFINER` bornée pour vérifier le r
 
 Une seconde migration, `supabase/migrations/20261008170000_hotel_publication_review.sql`, ajoute l’action d’administration permettant d’approuver ou de refuser la publication d’un établissement. Le tableau de bord admin liste désormais les demandes partenaires et les fiches hôtelières, avec état et coordonnées de contact. Seuls les établissements dont le statut est `approved` sont visibles par les visiteurs anonymes selon les règles RLS existantes ; le tableau de bord hôtelier continue de ne voir que ses propres fiches.
 
-Cette migration doit être exécutée dans Supabase SQL Editor **après** la migration initiale. L’intégration de ces enregistrements au catalogue de recherche et aux pages publiques, notamment le mappage des champs et des images, reste à réaliser avant que les fiches approuvées n’apparaissent dans la recherche.
+Cette migration doit être exécutée dans Supabase SQL Editor **après** la migration initiale.
+
+### Mise à jour — catalogue public Supabase
+
+Les pages d’accueil, de recherche, de fiche établissement et de favoris lisent maintenant les hôtels `approved` depuis Supabase. Les chambres actives sont chargées uniquement pour ces hôtels ; les pages publiques ne s’appuient pas sur les fiches de démonstration dès que Supabase est configuré. En l’absence de configuration, les données de démonstration restent disponibles et sont signalées comme telles.
+
+Les fiches publiées utilisent une image générique jusqu’à l’ajout d’un stockage photo. La recherche n’invente ni étoiles, ni avis, ni équipements, ni coordonnées ; la fiche détail affiche les chambres, le tarif minimum déclaré et les coordonnées fournies. `total_units` est présenté comme un nombre d’unités déclaré, jamais comme une disponibilité garantie. Les contrôles de panier/réservation et les avis simulés sont masqués pour les fiches partenaires ; la prise de réservation en ligne demeure indisponible.
+
+Après exécution des migrations, la recette à faire avec au moins un établissement approuvé est : vérifier sa présence sur l’accueil et dans la recherche, ouvrir sa fiche, confirmer que seules les chambres actives apparaissent et tester ses coordonnées. Vérifier aussi qu’une fiche en attente/refusée est invisible, que les favoris correspondants s’affichent, puis tester les mêmes pages sur mobile. La disponibilité par dates, les photos réelles, les équipements structurés, les avis vérifiés et la réservation restent des étapes distinctes.
 
 ## Périmètre et vérifications
 
