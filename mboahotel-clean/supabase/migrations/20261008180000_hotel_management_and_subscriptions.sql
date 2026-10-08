@@ -447,6 +447,21 @@ create policy "Admins manage payment instructions"
   using (public.is_current_user_admin())
   with check (public.is_current_user_admin());
 
+create function public.is_current_user_hotel_owner(p_hotel_folder text)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select auth.uid() is not null and exists (
+    select 1
+    from public.hotels hotel
+    where hotel.id::text = p_hotel_folder
+      and hotel.owner_id = auth.uid()
+  );
+$$;
+
 revoke insert, update, delete on public.hotel_photos from anon, authenticated;
 grant select on public.hotel_photos to anon, authenticated;
 grant insert (hotel_id, storage_path, alt_text, sort_order) on public.hotel_photos to authenticated;
@@ -485,40 +500,29 @@ create policy "Hoteliers upload images to their own hotel folders"
   on storage.objects for insert to authenticated
   with check (
     bucket_id = 'hotel-gallery'
-    and exists (
-      select 1 from public.hotels hotel
-      where hotel.id::text = (storage.foldername(name))[1]
-        and hotel.owner_id = auth.uid()
-    )
+    and public.is_current_user_hotel_owner((storage.foldername(name))[1])
   );
 
 create policy "Hoteliers update images in their own hotel folders"
   on storage.objects for update to authenticated
   using (
     bucket_id = 'hotel-gallery'
-    and exists (
-      select 1 from public.hotels hotel
-      where hotel.id::text = (storage.foldername(name))[1] and hotel.owner_id = auth.uid()
-    )
+    and public.is_current_user_hotel_owner((storage.foldername(name))[1])
   )
   with check (
     bucket_id = 'hotel-gallery'
-    and exists (
-      select 1 from public.hotels hotel
-      where hotel.id::text = (storage.foldername(name))[1] and hotel.owner_id = auth.uid()
-    )
+    and public.is_current_user_hotel_owner((storage.foldername(name))[1])
   );
 
 create policy "Hoteliers delete images in their own hotel folders"
   on storage.objects for delete to authenticated
   using (
     bucket_id = 'hotel-gallery'
-    and exists (
-      select 1 from public.hotels hotel
-      where hotel.id::text = (storage.foldername(name))[1] and hotel.owner_id = auth.uid()
-    )
+    and public.is_current_user_hotel_owner((storage.foldername(name))[1])
   );
 
+revoke all on function public.is_current_user_hotel_owner(text) from public, anon;
+grant execute on function public.is_current_user_hotel_owner(text) to authenticated;
 revoke all on function public.has_active_hotel_subscription(uuid) from public, anon;
 grant execute on function public.has_active_hotel_subscription(uuid) to anon, authenticated;
 revoke all on function public.get_public_hotel_entitlements(uuid[]) from public;

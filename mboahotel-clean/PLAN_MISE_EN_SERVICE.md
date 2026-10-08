@@ -65,7 +65,7 @@ Les formules sont configurées **par établissement**, même si un propriétaire
 
 #### Correctif — import des photos refusé par RLS
 
-Si l’ajout d’une image renvoie `new row violates row-level security policy`, appliquer `supabase/migrations/20261008202500_fix_hotel_gallery_owner_policies.sql` dans Supabase SQL Editor. Il remplace uniquement les politiques RLS d’import et de création des lignes de galerie : l’accès reste limité au propriétaire de l’hôtel connecté, mais ne dépend plus d’une vérification redondante du rôle de profil. Il ne supprime aucune photo ou autre donnée. La version principale de la migration de gestion inclut aussi ces règles corrigées pour les nouvelles installations.
+Si l’ajout d’une image renvoie `new row violates row-level security policy`, appliquer les correctifs de galerie dans l’ordre : `supabase/migrations/20261008202500_fix_hotel_gallery_owner_policies.sql`, puis `supabase/migrations/20261008203500_fix_hotel_gallery_storage_rls.sql`. Le second utilise une fonction `SECURITY DEFINER` limitée à la vérification que le dossier correspond à un hôtel appartenant à l’utilisateur connecté ; elle permet à ce contrôle de lire la propriété sans être bloqué par les politiques RLS imbriquées. Les politiques d’import, de modification et de suppression restent limitées au propriétaire et au bucket `hotel-gallery`. Ces correctifs remplacent les politiques concernées, sans supprimer de photo ni autre donnée.
 
 ### Mise à jour — validation des établissements
 
