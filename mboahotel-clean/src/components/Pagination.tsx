@@ -72,7 +72,7 @@ const Pagination: React.FC<PaginationProps> = ({
     <div className="mt-8">
       {/* Informations de pagination */}
       {showInfo && (
-        <div className="flex justify-between items-center mb-4">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
           <div className="text-sm text-gray-700">
             Affichage de {startIndex + 1} à {endIndex} sur {totalItems} résultats
           </div>
@@ -83,34 +83,37 @@ const Pagination: React.FC<PaginationProps> = ({
       )}
 
       {/* Contrôles de pagination */}
-      <div className="flex justify-center">
-        <nav className="flex items-center space-x-1">
+      <div className="flex max-w-full justify-center">
+        <nav aria-label="Pagination des résultats" className="flex max-w-full flex-wrap items-center justify-center gap-1">
           {/* Bouton Précédent */}
           <button
             onClick={goToPreviousPage}
             disabled={currentPage === 1}
-            className={`flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+            aria-label="Page précédente"
+            className={`flex h-10 shrink-0 items-center justify-center gap-1 rounded-md px-2 sm:px-3 text-sm font-medium transition-colors ${
               currentPage === 1
                 ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                 : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
             }`}
           >
-            <ChevronLeft className="w-4 h-4 mr-1" />
-            Précédent
+            <ChevronLeft aria-hidden="true" className="h-4 w-4" />
+            <span className="hidden sm:inline">Précédent</span>
           </button>
 
           {/* Numéros de pages */}
           {getPageNumbers().map((page, index) => (
             <React.Fragment key={index}>
               {page === '...' ? (
-                <span className="px-3 py-2 text-gray-500">...</span>
+                <span aria-hidden="true" className="hidden px-3 py-2 text-gray-500 sm:inline">...</span>
               ) : (
                 <button
                   onClick={() => onPageChange(page as number)}
-                  className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                  aria-label={`Page ${page}`}
+                  aria-current={currentPage === page ? 'page' : undefined}
+                  className={`h-10 min-w-10 shrink-0 rounded-md px-2 sm:px-3 text-sm font-medium transition-colors ${
                     currentPage === page
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+                      ? 'bg-forest text-white'
+                      : 'hidden border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 sm:inline-flex'
                   }`}
                 >
                   {page}
@@ -123,14 +126,15 @@ const Pagination: React.FC<PaginationProps> = ({
           <button
             onClick={goToNextPage}
             disabled={currentPage === totalPages}
-            className={`flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+            aria-label="Page suivante"
+            className={`flex h-10 shrink-0 items-center justify-center gap-1 rounded-md px-2 sm:px-3 text-sm font-medium transition-colors ${
               currentPage === totalPages
                 ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                 : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
             }`}
           >
-            Suivant
-            <ChevronRight className="w-4 h-4 ml-1" />
+            <span className="hidden sm:inline">Suivant</span>
+            <ChevronRight aria-hidden="true" className="h-4 w-4" />
           </button>
         </nav>
       </div>
