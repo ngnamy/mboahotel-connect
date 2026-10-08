@@ -63,6 +63,10 @@ La migration `supabase/migrations/20261008180000_hotel_management_and_subscripti
 
 Les formules sont configurées **par établissement**, même si un propriétaire possède plusieurs hôtels. Les limites initiales des types de chambres et photos sont des valeurs de départ, non des tarifs validés. Avant commercialisation, convenir des prix, taxes/frais éventuels, conditions d’abonnement, remboursements, délais de traitement et procédures de rapprochement Mobile Money. Aucun transfert réel, paiement ni application de migration n’a été testé depuis ce dépôt.
 
+#### Correctif — import des photos refusé par RLS
+
+Si l’ajout d’une image renvoie `new row violates row-level security policy`, appliquer `supabase/migrations/20261008202500_fix_hotel_gallery_owner_policies.sql` dans Supabase SQL Editor. Il remplace uniquement les politiques RLS d’import et de création des lignes de galerie : l’accès reste limité au propriétaire de l’hôtel connecté, mais ne dépend plus d’une vérification redondante du rôle de profil. Il ne supprime aucune photo ou autre donnée. La version principale de la migration de gestion inclut aussi ces règles corrigées pour les nouvelles installations.
+
 ### Mise à jour — validation des établissements
 
 Une seconde migration, `supabase/migrations/20261008170000_hotel_publication_review.sql`, ajoute l’action d’administration permettant d’approuver ou de refuser la publication d’un établissement. Le tableau de bord admin liste désormais les demandes partenaires et les fiches hôtelières, avec état et coordonnées de contact. Seuls les établissements dont le statut est `approved` sont visibles par les visiteurs anonymes selon les règles RLS existantes ; le tableau de bord hôtelier continue de ne voir que ses propres fiches.

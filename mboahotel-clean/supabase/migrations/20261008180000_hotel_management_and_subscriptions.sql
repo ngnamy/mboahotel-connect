@@ -389,13 +389,11 @@ create policy "Hoteliers manage photos for their own hotels"
   on public.hotel_photos for all to authenticated
   using (exists (
     select 1 from public.hotels hotel
-    join public.profiles owner_profile on owner_profile.id = hotel.owner_id
-    where hotel.id = hotel_id and hotel.owner_id = auth.uid() and owner_profile.role = 'hotelier'
+    where hotel.id = hotel_id and hotel.owner_id = auth.uid()
   ))
   with check (exists (
     select 1 from public.hotels hotel
-    join public.profiles owner_profile on owner_profile.id = hotel.owner_id
-    where hotel.id = hotel_id and hotel.owner_id = auth.uid() and owner_profile.role = 'hotelier'
+    where hotel.id = hotel_id and hotel.owner_id = auth.uid()
   ));
 
 create policy "Hoteliers and admins can read subscription plans"
@@ -489,10 +487,8 @@ create policy "Hoteliers upload images to their own hotel folders"
     bucket_id = 'hotel-gallery'
     and exists (
       select 1 from public.hotels hotel
-      join public.profiles owner_profile on owner_profile.id = hotel.owner_id
       where hotel.id::text = (storage.foldername(name))[1]
         and hotel.owner_id = auth.uid()
-        and owner_profile.role = 'hotelier'
     )
   );
 

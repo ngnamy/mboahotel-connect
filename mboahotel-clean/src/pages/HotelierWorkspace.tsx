@@ -188,6 +188,7 @@ const HotelierWorkspace: React.FC<HotelierWorkspaceProps> = ({ hotels, rooms, bu
 
       const client = requireSupabase();
       const uploadedPaths: string[] = [];
+      let uploadStage = 'Téléversement du fichier dans le stockage';
       try {
         for (const file of files) {
           const extension = file.type === 'image/jpeg' ? 'jpg' : file.type === 'image/png' ? 'png' : 'webp';
@@ -199,6 +200,7 @@ const HotelierWorkspace: React.FC<HotelierWorkspaceProps> = ({ hotels, rooms, bu
           if (error) throw error;
           uploadedPaths.push(path);
         }
+        uploadStage = 'Enregistrement des photos dans la galerie';
         const { data: newPhotos, error } = await client.from('hotel_photos').insert(uploadedPaths.map((path, index) => ({
           hotel_id: selectedHotel.id,
           storage_path: path,
@@ -212,7 +214,8 @@ const HotelierWorkspace: React.FC<HotelierWorkspaceProps> = ({ hotels, rooms, bu
           const { error: cleanupError } = await client.storage.from('hotel-gallery').remove(uploadedPaths);
           if (cleanupError) console.error('Impossible de supprimer les fichiers dont la publication a échoué:', cleanupError);
         }
-        throw uploadError;
+        const reason = uploadError instanceof Error ? uploadError.message : JSON.stringify(uploadError);
+        throw new Error(`${uploadStage} : ${reason}`);
       }
     }, 'Les photos ont été ajoutées à la galerie.');
     event.target.value = '';
