@@ -1,10 +1,12 @@
 import React, { FormEvent, useCallback, useEffect, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { Building2, Check, Clock3, Plus, X } from 'lucide-react';
+import { Check, Clock3, Plus, X } from 'lucide-react';
 import PageIntro from '../components/PageIntro';
 import { useAuth } from '../contexts/AuthContext';
 import { requireSupabase } from '../lib/supabase';
 import type { Database } from '../types/supabase';
+import HotelierWorkspace from './HotelierWorkspace';
+import SubscriptionManagement from './SubscriptionManagement';
 
 type Application = Database['public']['Tables']['partner_applications']['Row'];
 type Hotel = Database['public']['Tables']['hotels']['Row'];
@@ -27,19 +29,6 @@ const Dashboard: React.FC = () => {
   const [businessName, setBusinessName] = useState('');
   const [businessCity, setBusinessCity] = useState('');
   const [businessPhone, setBusinessPhone] = useState(user?.phone ?? '');
-  const [hotelName, setHotelName] = useState('');
-  const [hotelAddress, setHotelAddress] = useState('');
-  const [hotelCity, setHotelCity] = useState('');
-  const [hotelRegion, setHotelRegion] = useState('');
-  const [hotelPhone, setHotelPhone] = useState(user?.phone ?? '');
-  const [hotelEmail, setHotelEmail] = useState(user?.email ?? '');
-  const [roomHotelId, setRoomHotelId] = useState('');
-  const [roomName, setRoomName] = useState('');
-  const [roomDescription, setRoomDescription] = useState('');
-  const [roomCapacity, setRoomCapacity] = useState('2');
-  const [roomPrice, setRoomPrice] = useState('');
-  const [roomUnits, setRoomUnits] = useState('1');
-
   const loadData = useCallback(async () => {
     if (!user) return;
     setLoading(true);
@@ -83,7 +72,6 @@ const Dashboard: React.FC = () => {
         if (queryError) throw queryError;
         const ownedHotels = data ?? [];
         setHotels(ownedHotels);
-        setRoomHotelId(current => current || ownedHotels[0]?.id || '');
         if (ownedHotels.length) {
           const { data: roomData, error: roomsError } = await client
             .from('hotel_rooms')
@@ -156,53 +144,6 @@ const Dashboard: React.FC = () => {
       });
       if (rpcError) throw rpcError;
     }, approve ? 'L’établissement est maintenant publié.' : 'L’établissement a été refusé et ne sera pas visible publiquement.');
-  };
-
-  const createHotel = (event: FormEvent) => {
-    event.preventDefault();
-    void runAction(async () => {
-      const { error: insertError } = await requireSupabase().from('hotels').insert({
-        owner_id: user!.id,
-        name: hotelName.trim(),
-        address: hotelAddress.trim(),
-        city: hotelCity.trim(),
-        region: hotelRegion.trim(),
-        phone: hotelPhone.trim(),
-        email: hotelEmail.trim(),
-      });
-      if (insertError) throw insertError;
-      setHotelName('');
-      setHotelAddress('');
-    }, 'Votre établissement a été soumis pour validation.');
-  };
-
-  const createRoom = (event: FormEvent) => {
-    event.preventDefault();
-    void runAction(async () => {
-      const { error: insertError } = await requireSupabase().from('hotel_rooms').insert({
-        hotel_id: roomHotelId,
-        name: roomName.trim(),
-        description: roomDescription.trim(),
-        capacity: Number(roomCapacity),
-        price_xaf: Number(roomPrice),
-        total_units: Number(roomUnits),
-        is_active: true,
-      });
-      if (insertError) throw insertError;
-      setRoomName('');
-      setRoomDescription('');
-      setRoomPrice('');
-    }, 'La chambre a été ajoutée.');
-  };
-
-  const toggleRoom = (room: Room) => {
-    void runAction(async () => {
-      const { error: updateError } = await requireSupabase()
-        .from('hotel_rooms')
-        .update({ is_active: !room.is_active, updated_at: new Date().toISOString() })
-        .eq('id', room.id);
-      if (updateError) throw updateError;
-    }, room.is_active ? 'Chambre désactivée.' : 'Chambre activée.');
   };
 
   if (!user) return null;
@@ -285,6 +226,7 @@ const Dashboard: React.FC = () => {
                 )}
               </article>
             ))}
+            <SubscriptionManagement hotels={hotels} revision={revision} busy={busy} runAction={runAction} />
           </section>
         ) : user.role === 'client' ? (
           <section className="page-card max-w-2xl p-6 sm:p-8">
@@ -318,76 +260,9 @@ const Dashboard: React.FC = () => {
             )}
           </section>
         ) : (
-          <div className="grid gap-6 xl:grid-cols-2">
-            <section className="page-card p-6 sm:p-8">
-              <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-[#eef4ef] text-[#174c3a]"><Building2 aria-hidden="true" className="h-5 w-5" /></span>
-              <h2 className="mt-4 text-xl font-semibold">Ajouter un établissement</h2>
-              <p className="mt-2 text-sm leading-6 text-[#68736b]">Les nouvelles fiches sont soumises à validation avant leur publication.</p>
-              <form className="mt-6 grid gap-4" onSubmit={createHotel}>
-                <label className="grid gap-2 text-sm font-medium">Nom de l’établissement<input className="input" required value={hotelName} onChange={event => setHotelName(event.target.value)} /></label>
-                <label className="grid gap-2 text-sm font-medium">Adresse<input className="input" required value={hotelAddress} onChange={event => setHotelAddress(event.target.value)} /></label>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <label className="grid gap-2 text-sm font-medium">Ville<input className="input" required value={hotelCity} onChange={event => setHotelCity(event.target.value)} /></label>
-                  <label className="grid gap-2 text-sm font-medium">Région<input className="input" required value={hotelRegion} onChange={event => setHotelRegion(event.target.value)} /></label>
-                </div>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <label className="grid gap-2 text-sm font-medium">Téléphone<input className="input" type="tel" required value={hotelPhone} onChange={event => setHotelPhone(event.target.value)} /></label>
-                  <label className="grid gap-2 text-sm font-medium">E-mail<input className="input" type="email" required value={hotelEmail} onChange={event => setHotelEmail(event.target.value)} /></label>
-                </div>
-                <button className="btn-primary mt-2 w-full sm:w-fit" disabled={busy} type="submit">{busy ? 'Envoi…' : 'Soumettre l’établissement'}</button>
-              </form>
-            </section>
-
-            <section className="page-card p-6 sm:p-8">
-              <h2 className="text-xl font-semibold">Ajouter un type de chambre</h2>
-              <p className="mt-2 text-sm leading-6 text-[#68736b]">Les chambres sont enregistrées avec leur capacité, prix par nuit et nombre d’unités.</p>
-              {hotels.length === 0 ? (
-                <p className="mt-6 rounded-xl bg-[#f5f1e8] p-4 text-sm text-[#5c4324]">Soumettez d’abord un établissement. Vous pourrez ensuite y ajouter les chambres.</p>
-              ) : (
-                <form className="mt-6 grid gap-4" onSubmit={createRoom}>
-                  <label className="grid gap-2 text-sm font-medium">Établissement
-                    <select className="input" required value={roomHotelId} onChange={event => setRoomHotelId(event.target.value)}>
-                      {hotels.map(hotel => <option key={hotel.id} value={hotel.id}>{hotel.name}</option>)}
-                    </select>
-                  </label>
-                  <label className="grid gap-2 text-sm font-medium">Nom du type de chambre<input className="input" required value={roomName} onChange={event => setRoomName(event.target.value)} /></label>
-                  <label className="grid gap-2 text-sm font-medium">Description<textarea className="input min-h-24" value={roomDescription} onChange={event => setRoomDescription(event.target.value)} /></label>
-                  <div className="grid gap-4 sm:grid-cols-3">
-                    <label className="grid gap-2 text-sm font-medium">Capacité<input className="input" type="number" min="1" required value={roomCapacity} onChange={event => setRoomCapacity(event.target.value)} /></label>
-                    <label className="grid gap-2 text-sm font-medium">Prix/nuit (XAF)<input className="input" type="number" min="1" required value={roomPrice} onChange={event => setRoomPrice(event.target.value)} /></label>
-                    <label className="grid gap-2 text-sm font-medium">Unités<input className="input" type="number" min="1" required value={roomUnits} onChange={event => setRoomUnits(event.target.value)} /></label>
-                  </div>
-                  <button className="btn-primary mt-2 w-full sm:w-fit" disabled={busy || !roomHotelId} type="submit"><Plus aria-hidden="true" className="h-4 w-4" /> Ajouter la chambre</button>
-                </form>
-              )}
-            </section>
-
-            <section className="page-card p-6 sm:col-span-2 sm:p-8">
-              <h2 className="text-xl font-semibold">Mes établissements et chambres</h2>
-              {hotels.length === 0 ? (
-                <p className="mt-4 text-sm text-[#68736b]">Aucun établissement enregistré pour le moment.</p>
-              ) : (
-                <div className="mt-5 space-y-5">
-                  {hotels.map(hotel => (
-                    <article key={hotel.id} className="rounded-xl border border-[#e8e7e0] p-4 sm:p-5">
-                      <div className="flex flex-wrap items-start justify-between gap-3">
-                        <div><h3 className="font-semibold">{hotel.name}</h3><p className="mt-1 text-sm text-[#68736b]">{hotel.address}, {hotel.city} · {hotel.region}</p></div>
-                        <span className="rounded-full bg-[#f5f1e8] px-3 py-1 text-xs font-semibold capitalize text-[#5c4324]">{hotel.status === 'approved' ? 'Publié' : hotel.status === 'rejected' ? 'Refusé' : 'En validation'}</span>
-                      </div>
-                      <div className="mt-4 divide-y divide-[#e8e7e0]">
-                        {rooms.filter(room => room.hotel_id === hotel.id).map(room => (
-                          <div key={room.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
-                            <div><p className="font-medium">{room.name}</p><p className="text-sm text-[#68736b]">{room.capacity} personne(s) · {room.price_xaf.toLocaleString()} XAF/nuit · {room.total_units} unité(s)</p></div>
-                            <button type="button" disabled={busy} onClick={() => toggleRoom(room)} className="btn-secondary min-h-10 px-3 py-2 text-sm">{room.is_active ? 'Désactiver' : 'Activer'}</button>
-                          </div>
-                        ))}
-                        {rooms.every(room => room.hotel_id !== hotel.id) && <p className="py-3 text-sm text-[#68736b]">Aucune chambre ajoutée.</p>}
-                      </div>
-                    </article>
-                  ))}
-                </div>
-              )}
-            </section>
+          <div className="space-y-6">
+            <HotelierWorkspace hotels={hotels} rooms={rooms} busy={busy} runAction={runAction} />
+            <SubscriptionManagement hotels={hotels} revision={revision} busy={busy} runAction={runAction} />
           </div>
         )}
       </div>

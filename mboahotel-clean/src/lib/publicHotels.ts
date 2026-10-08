@@ -23,6 +23,12 @@ export interface PublicHotel {
   image: string;
   amenities: string[];
   stars: number;
+  priorityListing: boolean;
+  featuredListing: boolean;
+  checkInTime: string | null;
+  checkOutTime: string | null;
+  cancellationPolicy: string;
+  images: string[];
   price: number;
   rooms: PublicHotelRoom[];
 }
@@ -48,7 +54,7 @@ export const usePublicHotels = (hotelId?: string) => {
         const client = requireSupabase();
         let hotelQuery = client
           .from('hotels')
-          .select('id,name,description,address,city,region,phone,email,website,status')
+          .select('id,name,description,address,city,region,phone,email,website,status,amenities,stars,check_in_time,check_out_time,cancellation_policy')
           .eq('status', 'approved')
           .order('created_at', { ascending: false });
         if (hotelId) hotelQuery = hotelQuery.eq('id', hotelId);
@@ -61,13 +67,23 @@ export const usePublicHotels = (hotelId?: string) => {
           return;
         }
 
-        const { data: roomRows, error: roomError } = await client
-          .from('hotel_rooms')
-          .select('id,hotel_id,name,description,capacity,price_xaf,total_units')
-          .eq('is_active', true)
-          .in('hotel_id', rows.map(hotel => hotel.id))
-          .order('price_xaf', { ascending: true });
+        const [{ data: roomRows, error: roomError }, { data: photoRows, error: photoError }, { data: entitlementRows, error: entitlementError }] = await Promise.all([
+          client
+            .from('hotel_rooms')
+            .select('id,hotel_id,name,description,capacity,price_xaf,total_units')
+            .eq('is_active', true)
+            .in('hotel_id', rows.map(hotel => hotel.id))
+            .order('price_xaf', { ascending: true }),
+          client
+            .from('hotel_photos')
+            .select('hotel_id,storage_path,sort_order')
+            .in('hotel_id', rows.map(hotel => hotel.id))
+            .order('sort_order', { ascending: true }),
+          client.rpc('get_public_hotel_entitlements', { p_hotel_ids: rows.map(hotel => hotel.id) }),
+        ]);
         if (roomError) throw roomError;
+        if (photoError) throw photoError;
+        if (entitlementError) throw entitlementError;
 
         const roomsByHotel = new Map<string, PublicHotelRoom[]>();
         for (const room of roomRows ?? []) {
@@ -83,8 +99,18 @@ export const usePublicHotels = (hotelId?: string) => {
           roomsByHotel.set(room.hotel_id, hotelRooms);
         }
 
+        const photosByHotel = new Map<string, string[]>();
+        for (const photo of photoRows ?? []) {
+          const images = photosByHotel.get(photo.hotel_id) ?? [];
+          images.push(client.storage.from('hotel-gallery').getPublicUrl(photo.storage_path).data.publicUrl);
+          photosByHotel.set(photo.hotel_id, images);
+        }
+
+        const entitlementsByHotel = new Map((entitlementRows ?? []).map(item => [item.hotel_id, item]));
         const listings = rows.map(hotel => {
           const rooms = roomsByHotel.get(hotel.id) ?? [];
+          const images = photosByHotel.get(hotel.id) ?? [];
+          const entitlements = entitlementsByHotel.get(hotel.id);
           return {
             id: hotel.id,
             name: hotel.name,
@@ -95,9 +121,15 @@ export const usePublicHotels = (hotelId?: string) => {
             phone: hotel.phone,
             email: hotel.email,
             website: hotel.website,
-            image: '/images/hotels/hotel-placeholder.svg',
-            amenities: [],
-            stars: 0,
+            image: images[0] ?? '/images/hotels/hotel-placeholder.svg',
+            images: images.length ? images : ['/images/hotels/hotel-placeholder.svg'],
+            amenities: hotel.amenities ?? [],
+            stars: hotel.stars ?? 0,
+            priorityListing: entitlements?.priority_listing ?? false,
+            featuredListing: entitlements?.featured_listing ?? false,
+            checkInTime: hotel.check_in_time,
+            checkOutTime: hotel.check_out_time,
+            cancellationPolicy: hotel.cancellation_policy,
             price: rooms[0]?.price ?? 0,
             rooms,
           };

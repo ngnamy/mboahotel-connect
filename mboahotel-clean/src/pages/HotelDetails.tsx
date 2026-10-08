@@ -33,6 +33,7 @@ interface Room {
   name: string;
   price: number;
   capacity: number;
+  description?: string;
   images: string[];
   availableCount: number;
 }
@@ -166,7 +167,10 @@ const HotelDetails: React.FC = () => {
     rating: 0,
     reviewCount: 0,
     price: publishedHotel.price,
-    images: [publishedHotel.image, publishedHotel.image, publishedHotel.image],
+    images: Array.from(
+      { length: Math.max(3, publishedHotel.images.length) },
+      (_, index) => publishedHotel.images[index] ?? publishedHotel.image
+    ),
     amenities: publishedHotel.amenities,
     stars: publishedHotel.stars,
     description: publishedHotel.description || 'La description détaillée de cet établissement sera bientôt disponible. Contactez directement l’hôtel pour en savoir plus.',
@@ -177,13 +181,14 @@ const HotelDetails: React.FC = () => {
       name: room.name,
       price: room.price,
       capacity: room.capacity,
-      images: [publishedHotel.image],
+      description: room.description,
+      images: publishedHotel.images,
       availableCount: room.totalUnits,
     })),
     policies: {
-      checkIn: 'À confirmer auprès de l’établissement',
-      checkOut: 'À confirmer auprès de l’établissement',
-      cancellation: 'Les conditions de séjour doivent être confirmées directement avec l’établissement.',
+      checkIn: publishedHotel.checkInTime?.slice(0, 5) || 'À confirmer auprès de l’établissement',
+      checkOut: publishedHotel.checkOutTime?.slice(0, 5) || 'À confirmer auprès de l’établissement',
+      cancellation: publishedHotel.cancellationPolicy || 'Les conditions de séjour doivent être confirmées directement avec l’établissement.',
     },
   } : undefined;
   const hotel: Hotel | undefined = liveHotel || detailedHotel || (catalogHotel ? {
@@ -489,6 +494,7 @@ const HotelDetails: React.FC = () => {
                       <div className="flex-grow mb-4 sm:mb-0">
                         <h3 className="font-semibold text-lg">{room.name}</h3>
                         <p className="text-sm text-gray-600 mb-1">Capacité: {room.capacity} personnes</p>
+                        {room.description && <p className="mb-2 text-sm leading-5 text-gray-600">{room.description}</p>}
                         {isLiveListing
                           ? <p className="text-sm text-gray-600">{room.availableCount} unité{room.availableCount > 1 ? 's' : ''} déclarée{room.availableCount > 1 ? 's' : ''} · Disponibilité à confirmer</p>
                           : <p className={`text-sm font-medium ${room.availableCount > 0 ? (room.availableCount < 4 ? 'text-orange-600' : 'text-green-600') : 'text-red-600'}`}>
@@ -578,8 +584,8 @@ const HotelDetails: React.FC = () => {
               <h3 className="text-xl font-bold text-gray-900 mb-3">Contacter l’établissement</h3>
               <p className="mb-5 text-sm leading-6 text-gray-600">La réservation en ligne n’est pas encore disponible. Contactez directement l’établissement pour vérifier les tarifs et les disponibilités de vos dates.</p>
               <div className="grid gap-3">
-                <a href={`tel:${hotel.phone}`} className="btn-primary w-full">{hotel.phone}</a>
-                <a href={`mailto:${hotel.email}`} className="btn-secondary w-full break-all">{hotel.email}</a>
+                {hotel.phone && <a href={`tel:${hotel.phone}`} className="btn-primary w-full">{hotel.phone}</a>}
+                {hotel.email && <a href={`mailto:${hotel.email}`} className="btn-secondary w-full break-all">{hotel.email}</a>}
               </div>
             </div>
           </div>

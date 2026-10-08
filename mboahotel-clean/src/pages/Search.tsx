@@ -4,7 +4,7 @@ import { Search as SearchIcon, MapPin, Calendar, Users, Star, Wifi, Car, Coffee,
 import Pagination from '../components/Pagination';
 import LocationSearchSimple from '../components/LocationSearchSimple';
 import FavoriteButton from '../components/FavoriteButton';
-import { calculateDistance, sortHotelsByDistance, formatDistance } from '../utils/geolocation';
+import { calculateDistance, formatDistance } from '../utils/geolocation';
 import PageIntro from '../components/PageIntro';
 import { usePublicHotels } from '../lib/publicHotels';
 
@@ -20,6 +20,8 @@ interface Hotel {
   image: string;
   amenities: string[];
   stars: number;
+  priorityListing?: boolean;
+  featuredListing?: boolean;
   coordinates?: {
     latitude: number;
     longitude: number;
@@ -301,6 +303,8 @@ const Search: React.FC = () => {
         image: hotel.image,
         amenities: hotel.amenities,
         stars: hotel.stars,
+        priorityListing: hotel.priorityListing,
+        featuredListing: hotel.featuredListing,
       }))
     : mockHotels;
 
@@ -424,23 +428,6 @@ const Search: React.FC = () => {
     return 'Correct';
   };
 
-  // Fonction de tri des hôtels
-  const sortHotels = (hotels: Hotel[], sortBy: string) => {
-    const sorted = [...hotels];
-    switch (sortBy) {
-      case 'price':
-        return sorted.sort((a, b) => a.price - b.price);
-      case 'rating':
-        return sorted.sort((a, b) => b.rating - a.rating);
-      case 'popular':
-        return sorted.sort((a, b) => b.reviewCount - a.reviewCount);
-      default:
-        return sorted;
-    }
-  };
-
-
-
   // Fonction de navigation de pagination
   const goToPage = (page: number) => {
     setCurrentPage(page);
@@ -508,18 +495,25 @@ const Search: React.FC = () => {
   const getSortedHotels = (hotels: Hotel[]) => {
     const sorted = [...hotels];
     
-    switch (sortBy) {
+    const bySelectedSort = (a: Hotel, b: Hotel) => {
+      switch (sortBy) {
       case 'price':
-        return sorted.sort((a, b) => a.price - b.price);
+        return a.price - b.price;
       case 'rating':
-        return sorted.sort((a, b) => b.rating - a.rating);
+        return b.rating - a.rating;
       case 'popular':
-        return sorted.sort((a, b) => b.reviewCount - a.reviewCount);
+        return b.reviewCount - a.reviewCount;
       case 'distance':
-        return sortHotelsByDistance(sorted);
+        return (a.distance ?? Number.MAX_SAFE_INTEGER) - (b.distance ?? Number.MAX_SAFE_INTEGER);
       default:
-        return sorted;
-    }
+        return 0;
+      }
+    };
+    return sorted.sort((a, b) =>
+      Number(Boolean(b.featuredListing)) - Number(Boolean(a.featuredListing))
+      || Number(Boolean(b.priorityListing)) - Number(Boolean(a.priorityListing))
+      || bySelectedSort(a, b)
+    );
   };
 
   // Hôtels avec distances calculées, puis filtrés et triés
@@ -1109,6 +1103,7 @@ const Search: React.FC = () => {
                       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-2 gap-2">
                         <div className="flex-1">
                           <h3 className="text-lg sm:text-xl font-semibold text-gray-900">{hotel.name}</h3>
+                          {hotel.featuredListing && <span className="mt-1 inline-flex rounded-full bg-[#f8f0dd] px-2.5 py-1 text-xs font-semibold text-[#7d5d24]">À la une</span>}
                           <p className="text-sm text-gray-600">{hotel.type}</p>
                           <div className="flex items-center mt-1">
                             <MapPin className="w-4 h-4 text-gray-400 mr-1" />

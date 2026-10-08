@@ -22,6 +22,7 @@ const featuredHotels = [
     price: 45000,
     image: '/images/hotels/hotel-la-falaise.svg',
     features: ['Piscine', 'Restaurant', 'Wi-Fi'],
+    featured: false,
   },
   {
     id: '2',
@@ -31,6 +32,7 @@ const featuredHotels = [
     price: 75000,
     image: '/images/hotels/hotel-akwa-palace.svg',
     features: ['Spa', 'Restaurant', 'Navette aéroport'],
+    featured: false,
   },
 ];
 
@@ -64,7 +66,10 @@ const destinations = [
 const Home: React.FC = () => {
   const { hotels: publishedHotels, isConfigured, isLoading, error } = usePublicHotels();
   const hotelsToFeature = isConfigured
-    ? publishedHotels.slice(0, 2).map(hotel => ({
+    ? [...publishedHotels].sort((a, b) =>
+        Number(b.featuredListing) - Number(a.featuredListing)
+        || Number(b.priorityListing) - Number(a.priorityListing)
+      ).slice(0, 2).map(hotel => ({
         id: hotel.id,
         name: hotel.name,
         city: hotel.city,
@@ -72,6 +77,7 @@ const Home: React.FC = () => {
         price: hotel.price,
         image: hotel.image,
         features: hotel.amenities,
+        featured: hotel.featuredListing,
       }))
     : featuredHotels;
 
@@ -179,6 +185,7 @@ const Home: React.FC = () => {
               <span className="absolute left-4 top-4 rounded-full bg-white/90 px-3 py-1.5 text-xs font-semibold text-[#174c3a] backdrop-blur">
                 {hotel.city}
               </span>
+              {hotel.featured && <span className="absolute right-4 top-4 rounded-full bg-[#f8f0dd] px-3 py-1.5 text-xs font-semibold text-[#7d5d24]">À la une</span>}
             </div>
             <div className="flex flex-col justify-between p-6 sm:p-7">
               <div>

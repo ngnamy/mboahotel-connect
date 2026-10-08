@@ -47,6 +47,22 @@ La migration utilise une fonction `SECURITY DEFINER` bornée pour vérifier le r
 - Les établissements soumis restent en attente de publication. L’ajout et l’activation des types de chambres sont disponibles dans l’espace hôtelier, mais la disponibilité par date, les photos, le paiement, les e-mails/SMS et l’approbation de fiche ne sont pas encore intégrés.
 - Aucun projet Supabase, secret public de configuration ou environnement de test n’est fourni dans le dépôt. Les parcours connectés ne peuvent donc pas être testés de bout en bout avant la configuration ci-dessus.
 
+### Mise à jour — espace hôtelier et abonnements (8 octobre 2026)
+
+La migration `supabase/migrations/20261008180000_hotel_management_and_subscriptions.sql` ajoute l’édition des fiches et des chambres, une galerie d’images Supabase Storage, des formules configurables (tarifs en XAF, limites et options), et des abonnements par établissement. La migration réserve les images publiques et le catalogue public aux hôtels approuvés disposant d’un abonnement valide. Elle crée les formules Essentiel, Visibilité+ et Premium **inactives, sans tarif** : un administrateur doit décider des prix, limites, options et activer chaque formule depuis le tableau de bord.
+
+**Attention avant d’exécuter cette migration :** les hôtels déjà approuvés ne seront plus visibles dans le catalogue tant qu’un abonnement valide ne leur aura pas été attribué. Les renouvellements sont manuels : l’hôtelier envoie le montant depuis MTN Mobile Money ou Orange Money, saisit son numéro et la référence du transfert, puis un administrateur vérifie le crédit reçu dans le portefeuille de collecte avant d’approuver. L’application ne prélève pas d’argent, ne confirme pas le transfert automatiquement et ne met pas en place de renouvellement automatique. Les coordonnées destinataires doivent être configurées dans le tableau de bord admin.
+
+**Ordre et recette de déploiement :**
+
+1. Sauvegarder la base avant migration ; exécuter dans Supabase SQL Editor les migrations dans l’ordre : `20261008090000_initial_accounts_and_hotelier_workspace.sql`, `20261008170000_hotel_publication_review.sql`, puis `20261008180000_hotel_management_and_subscriptions.sql` (ne pas relancer celles déjà appliquées).
+2. Déployer la version frontend correspondante. Vérifier que le build Vite réussit.
+3. Dans le tableau de bord administrateur, configurer les coordonnées de collecte et les tarifs XAF, limites et options des formules ; n’activer que les formules prêtes à vendre.
+4. Pour chaque hôtel existant, informer le propriétaire du tarif et du transfert demandé ; après vérification réelle du transfert, examiner la référence et approuver le paiement depuis l’interface admin. Ne pas activer un abonnement sur la seule base de la référence déclarée.
+5. Tester avec des comptes hôtelier et admin : modifier et re-soumettre une fiche, ajouter/modifier/masquer/supprimer des chambres, charger et supprimer des photos, dépasser les limites, déclarer un transfert, refuser puis approuver un paiement, vérifier l’expiration, et confirmer qu’un hôtel non abonné n’est pas public.
+
+Les formules sont configurées **par établissement**, même si un propriétaire possède plusieurs hôtels. Les limites initiales des types de chambres et photos sont des valeurs de départ, non des tarifs validés. Avant commercialisation, convenir des prix, taxes/frais éventuels, conditions d’abonnement, remboursements, délais de traitement et procédures de rapprochement Mobile Money. Aucun transfert réel, paiement ni application de migration n’a été testé depuis ce dépôt.
+
 ### Mise à jour — validation des établissements
 
 Une seconde migration, `supabase/migrations/20261008170000_hotel_publication_review.sql`, ajoute l’action d’administration permettant d’approuver ou de refuser la publication d’un établissement. Le tableau de bord admin liste désormais les demandes partenaires et les fiches hôtelières, avec état et coordonnées de contact. Seuls les établissements dont le statut est `approved` sont visibles par les visiteurs anonymes selon les règles RLS existantes ; le tableau de bord hôtelier continue de ne voir que ses propres fiches.
