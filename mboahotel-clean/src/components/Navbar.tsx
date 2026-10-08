@@ -26,7 +26,6 @@ const Navbar: React.FC = () => {
 
   return (
     <header className="sticky top-0 z-40 border-b border-[#e8e7e0] bg-[#faf9f6]/95 backdrop-blur">
-      <div className="h-1 bg-gradient-to-r from-[#174c3a] via-[#f5f1e8] to-[#c66b42]" />
       <nav aria-label="Navigation principale" className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-[76px] items-center justify-between gap-4">
           <Link to="/" onClick={closeMenu} className="flex min-w-0 items-center gap-3">
