@@ -12,7 +12,16 @@ type Application = Database['public']['Tables']['partner_applications']['Row'];
 type Hotel = Database['public']['Tables']['hotels']['Row'];
 type Room = Database['public']['Tables']['hotel_rooms']['Row'];
 
-const errorMessage = (error: unknown) => error instanceof Error ? error.message : String(error);
+const errorMessage = (error: unknown) => {
+  if (error instanceof Error) return error.message;
+  if (typeof error !== 'object' || error === null) return String(error);
+
+  const details = error as { message?: unknown; details?: unknown; hint?: unknown; code?: unknown };
+  const messages = [details.message, details.details, details.hint]
+    .filter((value): value is string => typeof value === 'string' && value.length > 0);
+  const code = typeof details.code === 'string' ? ` (${details.code})` : '';
+  return messages.length ? `${messages.join(' — ')}${code}` : 'Une erreur inattendue est survenue.';
+};
 
 const Dashboard: React.FC = () => {
   const { user, refreshProfile } = useAuth();
