@@ -1,3 +1,10 @@
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('hotel-gallery', 'hotel-gallery', true, 5242880, array['image/jpeg', 'image/png', 'image/webp'])
+on conflict (id) do update
+set public = excluded.public,
+    file_size_limit = excluded.file_size_limit,
+    allowed_mime_types = excluded.allowed_mime_types;
+
 alter table public.hotels
   add column amenities text[] not null default '{}',
   add column stars smallint not null default 0 check (stars between 0 and 5),
@@ -464,13 +471,6 @@ grant update (mtn_momo_number, mtn_momo_name, orange_money_number, orange_money_
 
 grant update (name, description, address, city, region, phone, email, website, amenities, stars, check_in_time, check_out_time, cancellation_policy, updated_at)
   on public.hotels to authenticated;
-
-insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-values ('hotel-gallery', 'hotel-gallery', true, 5242880, array['image/jpeg', 'image/png', 'image/webp'])
-on conflict (id) do update
-set public = excluded.public,
-    file_size_limit = excluded.file_size_limit,
-    allowed_mime_types = excluded.allowed_mime_types;
 
 create policy "Hotel gallery images are publicly readable"
   on storage.objects for select to anon, authenticated
