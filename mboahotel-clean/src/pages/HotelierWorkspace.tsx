@@ -7,6 +7,7 @@ import { requireSupabase } from '../lib/supabase';
 type Hotel = Database['public']['Tables']['hotels']['Row'];
 type Room = Database['public']['Tables']['hotel_rooms']['Row'];
 type Photo = Database['public']['Tables']['hotel_photos']['Row'];
+type RoomPhoto = Database['public']['Tables']['hotel_room_photos']['Row'];
 
 interface HotelierWorkspaceProps {
   hotels: Hotel[];
@@ -19,6 +20,8 @@ const HotelierWorkspace: React.FC<HotelierWorkspaceProps> = ({ hotels, rooms, bu
   const { user } = useAuth();
   const [selectedHotelId, setSelectedHotelId] = useState('');
   const [photos, setPhotos] = useState<Photo[]>([]);
+  const [roomPhotos, setRoomPhotos] = useState<RoomPhoto[]>([]);
+  const [photoLimit, setPhotoLimit] = useState(3);
   const [photosError, setPhotosError] = useState('');
   const [hotelName, setHotelName] = useState('');
   const [hotelDescription, setHotelDescription] = useState('');
@@ -56,29 +59,75 @@ const HotelierWorkspace: React.FC<HotelierWorkspaceProps> = ({ hotels, rooms, bu
   useEffect(() => {
     if (!selectedHotel) {
       setPhotos([]);
+      setRoomPhotos([]);
+      setPhotoLimit(3);
       setPhotosError('');
       return;
     }
     let active = true;
+    setPhotos([]);
+    setRoomPhotos([]);
+    setPhotoLimit(3);
     setPhotosError('');
     const loadPhotos = async () => {
-      const { data, error } = await requireSupabase()
-        .from('hotel_photos')
-        .select('*')
-        .eq('hotel_id', selectedHotel.id)
-        .order('sort_order', { ascending: true });
-      if (error) {
-        console.error('Impossible de charger les photos de l’établissement:', error);
-        if (active) setPhotosError(error.message);
+      const client = requireSupabase();
+      const hotelRoomIds = rooms.filter(room => room.hotel_id === selectedHotel.id).map(room => room.id);
+      const [{ data, error }, { data: roomPhotoRows, error: roomPhotoError }, { data: subscription, error: subscriptionError }] = await Promise.all([
+        client
+          .from('hotel_photos')
+          .select('*')
+          .eq('hotel_id', selectedHotel.id)
+          .order('sort_order', { ascending: true }),
+        hotelRoomIds.length
+          ? client
+            .from('hotel_room_photos')
+            .select('*')
+            .in('room_id', hotelRoomIds)
+            .order('sort_order', { ascending: true })
+          : Promise.resolve({ data: [], error: null }),
+        client
+          .from('hotel_subscriptions')
+          .select('plan_id')
+          .eq('hotel_id', selectedHotel.id)
+          .eq('status', 'active')
+          .gt('current_period_end', new Date().toISOString())
+          .limit(1)
+          .maybeSingle(),
+      ]);
+      if (error || roomPhotoError || subscriptionError) {
+        const loadError = error ?? roomPhotoError ?? subscriptionError;
+        console.error('Impossible de charger les photos ou les droits de l’établissement:', loadError);
+        if (active) setPhotosError(loadError.message);
         return;
       }
-      if (active) setPhotos(data ?? []);
+      let limit = 3;
+      if (subscription) {
+        const { data: plan, error: planError } = await client
+          .from('hotel_subscription_plans')
+          .select('max_photos')
+          .eq('id', subscription.plan_id)
+          .maybeSingle();
+        if (planError) {
+          console.error('Impossible de charger la limite photo de la formule:', planError);
+          if (active) setPhotosError(planError.message);
+          return;
+        }
+        if (plan) limit = plan.max_photos;
+      }
+      if (active) {
+        setPhotos(data ?? []);
+        setRoomPhotos(roomPhotoRows ?? []);
+        setPhotoLimit(limit);
+      }
     };
     void loadPhotos();
     return () => {
       active = false;
     };
-  }, [selectedHotel?.id]);
+  }, [selectedHotel?.id, rooms]);
+
+  const usedPhotoCount = photos.length + roomPhotos.length;
+  const remainingPhotoCount = Math.max(0, photoLimit - usedPhotoCount);
 
   useEffect(() => {
     if (!selectedHotel) return;
@@ -176,10 +225,14 @@ const HotelierWorkspace: React.FC<HotelierWorkspaceProps> = ({ hotels, rooms, bu
     }, roomId ? 'La chambre a été modifiée.' : 'La chambre a été ajoutée.');
   };
 
-  const uploadPhotos = (event: ChangeEvent<HTMLInputElement>) => {
+  const uploadPhotos = (event: ChangeEvent<HTMLInputElement>, targetRoomId?: string) => {
     const files = Array.from(event.target.files ?? []);
+    event.target.value = '';
     if (!selectedHotel || !files.length) return;
     void runAction(async () => {
+      if (files.length > remainingPhotoCount) {
+        throw new Error(`Votre formule autorise ${photoLimit} photo(s) au total. Il vous reste ${remainingPhotoCount} emplacement(s).`);
+      }
       const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
       for (const file of files) {
         if (!allowedTypes.includes(file.type)) throw new Error('Formats acceptés : JPEG, PNG et WebP.');
@@ -192,7 +245,9 @@ const HotelierWorkspace: React.FC<HotelierWorkspaceProps> = ({ hotels, rooms, bu
       try {
         for (const file of files) {
           const extension = file.type === 'image/jpeg' ? 'jpg' : file.type === 'image/png' ? 'png' : 'webp';
-          const path = `${selectedHotel.id}/${crypto.randomUUID()}.${extension}`;
+          const path = targetRoomId
+            ? `${selectedHotel.id}/rooms/${targetRoomId}/${crypto.randomUUID()}.${extension}`
+            : `${selectedHotel.id}/${crypto.randomUUID()}.${extension}`;
           const { error } = await client.storage.from('hotel-gallery').upload(path, file, {
             contentType: file.type,
             upsert: false,
@@ -200,15 +255,23 @@ const HotelierWorkspace: React.FC<HotelierWorkspaceProps> = ({ hotels, rooms, bu
           if (error) throw error;
           uploadedPaths.push(path);
         }
-        uploadStage = 'Enregistrement des photos dans la galerie';
-        const { data: newPhotos, error } = await client.from('hotel_photos').insert(uploadedPaths.map((path, index) => ({
-          hotel_id: selectedHotel.id,
-          storage_path: path,
-          alt_text: files[index].name.replace(/\.[^.]+$/, '').slice(0, 250),
-          sort_order: photos.length + index,
-        }))).select();
+        uploadStage = targetRoomId ? 'Enregistrement des photos de la chambre' : 'Enregistrement des photos dans la galerie';
+        const { data: newPhotos, error } = targetRoomId
+          ? await client.from('hotel_room_photos').insert(uploadedPaths.map((path, index) => ({
+            room_id: targetRoomId,
+            storage_path: path,
+            alt_text: files[index].name.replace(/\.[^.]+$/, '').slice(0, 250),
+            sort_order: roomPhotos.filter(photo => photo.room_id === targetRoomId).length + index,
+          }))).select()
+          : await client.from('hotel_photos').insert(uploadedPaths.map((path, index) => ({
+            hotel_id: selectedHotel.id,
+            storage_path: path,
+            alt_text: files[index].name.replace(/\.[^.]+$/, '').slice(0, 250),
+            sort_order: photos.length + index,
+          }))).select();
         if (error) throw error;
-        setPhotos(current => [...current, ...(newPhotos ?? [])]);
+        if (targetRoomId) setRoomPhotos(current => [...current, ...(newPhotos ?? [])]);
+        else setPhotos(current => [...current, ...(newPhotos ?? [])]);
       } catch (uploadError) {
         if (uploadedPaths.length) {
           const { error: cleanupError } = await client.storage.from('hotel-gallery').remove(uploadedPaths);
@@ -217,8 +280,7 @@ const HotelierWorkspace: React.FC<HotelierWorkspaceProps> = ({ hotels, rooms, bu
         const reason = uploadError instanceof Error ? uploadError.message : JSON.stringify(uploadError);
         throw new Error(`${uploadStage} : ${reason}`);
       }
-    }, 'Les photos ont été ajoutées à la galerie.');
-    event.target.value = '';
+    }, targetRoomId ? 'Les photos de la chambre ont été ajoutées.' : 'Les photos ont été ajoutées à la galerie.');
   };
 
   const removePhoto = (photo: Photo) => {
@@ -230,6 +292,17 @@ const HotelierWorkspace: React.FC<HotelierWorkspaceProps> = ({ hotels, rooms, bu
       if (rowError) throw rowError;
       setPhotos(current => current.filter(item => item.id !== photo.id));
     }, 'La photo a été supprimée.');
+  };
+
+  const removeRoomPhoto = (photo: RoomPhoto) => {
+    void runAction(async () => {
+      const client = requireSupabase();
+      const { error: fileError } = await client.storage.from('hotel-gallery').remove([photo.storage_path]);
+      if (fileError) throw fileError;
+      const { error: rowError } = await client.from('hotel_room_photos').delete().eq('id', photo.id);
+      if (rowError) throw rowError;
+      setRoomPhotos(current => current.filter(item => item.id !== photo.id));
+    }, 'La photo de la chambre a été supprimée.');
   };
 
   const toggleRoom = (room: Room) => {
@@ -244,8 +317,19 @@ const HotelierWorkspace: React.FC<HotelierWorkspaceProps> = ({ hotels, rooms, bu
   const deleteRoom = (room: Room) => {
     if (!window.confirm(`Supprimer le type de chambre « ${room.name} » ?`)) return;
     void runAction(async () => {
-      const { error } = await requireSupabase().from('hotel_rooms').delete().eq('id', room.id);
+      const client = requireSupabase();
+      const { data: storedPhotos, error: photosError } = await client
+        .from('hotel_room_photos')
+        .select('storage_path')
+        .eq('room_id', room.id);
+      if (photosError) throw photosError;
+      if (storedPhotos?.length) {
+        const { error: fileError } = await client.storage.from('hotel-gallery').remove(storedPhotos.map(photo => photo.storage_path));
+        if (fileError) throw fileError;
+      }
+      const { error } = await client.from('hotel_rooms').delete().eq('id', room.id);
       if (error) throw error;
+      setRoomPhotos(current => current.filter(photo => photo.room_id !== room.id));
     }, 'Le type de chambre a été supprimé.');
   };
 
@@ -321,11 +405,12 @@ const HotelierWorkspace: React.FC<HotelierWorkspaceProps> = ({ hotels, rooms, bu
               <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                 <div>
                   <h2 className="text-xl font-semibold">Photos de l’établissement</h2>
-                  <p className="mt-1 text-sm text-[#68736b]">JPG, PNG ou WebP · 5 Mo maximum par image · la limite dépend de votre formule.</p>
+                  <p className="mt-1 text-sm text-[#68736b]">JPG, PNG ou WebP · 5 Mo maximum par image · galerie et chambres partagent le même plafond.</p>
+                  <p className="mt-1 text-sm font-medium text-[#174c3a]">{usedPhotoCount}/{photoLimit} photos utilisées · {remainingPhotoCount} emplacement(s) restant(s)</p>
                 </div>
-                <label className="btn-secondary cursor-pointer">
+                <label className={`btn-secondary ${remainingPhotoCount ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`} aria-disabled={remainingPhotoCount === 0}>
                   <ImagePlus aria-hidden="true" className="h-4 w-4" /> Ajouter des photos
-                  <input className="sr-only" type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={busy} onChange={uploadPhotos} />
+                  <input className="sr-only" type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={busy || remainingPhotoCount === 0} onChange={uploadPhotos} />
                 </label>
               </div>
               {photosError && <p role="alert" className="mt-3 text-sm text-red-700">Impossible de charger la galerie : {photosError}</p>}
@@ -373,17 +458,42 @@ const HotelierWorkspace: React.FC<HotelierWorkspaceProps> = ({ hotels, rooms, bu
                 <article key={hotel.id} className="rounded-xl border border-[#e8e7e0] p-4 sm:p-5">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div><h3 className="font-semibold">{hotel.name}</h3><p className="mt-1 text-sm text-[#68736b]">{hotel.address}, {hotel.city} · {hotel.region}</p></div>
-                    <span className="rounded-full bg-[#f5f1e8] px-3 py-1 text-xs font-semibold capitalize text-[#5c4324]">{hotel.status === 'approved' ? 'Publié' : hotel.status === 'rejected' ? 'Refusé' : 'En validation'}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="rounded-full bg-[#f5f1e8] px-3 py-1 text-xs font-semibold capitalize text-[#5c4324]">{hotel.status === 'approved' ? 'Publié' : hotel.status === 'rejected' ? 'Refusé' : 'En validation'}</span>
+                      {hotel.id !== selectedHotelId && <button type="button" className="btn-secondary min-h-10 px-3 py-2 text-sm" onClick={() => setSelectedHotelId(hotel.id)}>Gérer cet établissement</button>}
+                    </div>
                   </div>
                   <div className="mt-4 divide-y divide-[#e8e7e0]">
                     {rooms.filter(room => room.hotel_id === hotel.id).map(room => (
-                      <div key={room.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
-                        <div><p className="font-medium">{room.name}</p><p className="text-sm text-[#68736b]">{room.capacity} personne(s) · {room.price_xaf.toLocaleString()} XAF/nuit · {room.total_units} unité(s) déclarée(s)</p><p className="text-xs text-[#68736b]">{room.is_active ? 'Visible sur la fiche publiée' : 'Masquée'}</p></div>
-                        <div className="flex flex-wrap gap-2">
-                          <button type="button" disabled={busy} onClick={() => { setSelectedHotelId(hotel.id); setRoomId(room.id); setRoomName(room.name); setRoomDescription(room.description); setRoomCapacity(String(room.capacity)); setRoomPrice(String(room.price_xaf)); setRoomUnits(String(room.total_units)); }} className="btn-secondary min-h-10 px-3 py-2 text-sm"><Pencil aria-hidden="true" className="h-4 w-4" /> Modifier</button>
-                          <button type="button" disabled={busy} onClick={() => toggleRoom(room)} className="btn-secondary min-h-10 px-3 py-2 text-sm">{room.is_active ? 'Désactiver' : 'Activer'}</button>
-                          <button type="button" disabled={busy} onClick={() => deleteRoom(room)} className="btn-secondary min-h-10 px-3 py-2 text-sm text-red-700"><Trash2 aria-hidden="true" className="h-4 w-4" /> Supprimer</button>
+                      <div key={room.id} className="py-3">
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <div><p className="font-medium">{room.name}</p><p className="text-sm text-[#68736b]">{room.capacity} personne(s) · {room.price_xaf.toLocaleString()} XAF/nuit · {room.total_units} unité(s) déclarée(s)</p><p className="text-xs text-[#68736b]">{room.is_active ? 'Visible sur la fiche publiée' : 'Masquée'}</p></div>
+                          <div className="flex flex-wrap gap-2">
+                            <button type="button" disabled={busy} onClick={() => { setSelectedHotelId(hotel.id); setRoomId(room.id); setRoomName(room.name); setRoomDescription(room.description); setRoomCapacity(String(room.capacity)); setRoomPrice(String(room.price_xaf)); setRoomUnits(String(room.total_units)); }} className="btn-secondary min-h-10 px-3 py-2 text-sm"><Pencil aria-hidden="true" className="h-4 w-4" /> Modifier</button>
+                            <button type="button" disabled={busy} onClick={() => toggleRoom(room)} className="btn-secondary min-h-10 px-3 py-2 text-sm">{room.is_active ? 'Désactiver' : 'Activer'}</button>
+                            <button type="button" disabled={busy} onClick={() => deleteRoom(room)} className="btn-secondary min-h-10 px-3 py-2 text-sm text-red-700"><Trash2 aria-hidden="true" className="h-4 w-4" /> Supprimer</button>
+                          </div>
                         </div>
+                        {hotel.id === selectedHotelId && (
+                          <div className="mt-3">
+                            <label className={`btn-secondary min-h-9 px-3 py-2 text-sm ${remainingPhotoCount ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`} aria-disabled={remainingPhotoCount === 0}>
+                              <ImagePlus aria-hidden="true" className="h-4 w-4" /> Ajouter une photo à cette chambre
+                              <input className="sr-only" type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={busy || remainingPhotoCount === 0} onChange={event => uploadPhotos(event, room.id)} />
+                            </label>
+                            {roomPhotos.filter(photo => photo.room_id === room.id).length > 0 && (
+                              <div className="mt-3 flex flex-wrap gap-2">
+                                {roomPhotos.filter(photo => photo.room_id === room.id).map((photo, index) => (
+                                  <figure key={photo.id} className="relative h-20 w-28 overflow-hidden rounded-lg border border-[#e8e7e0]">
+                                    <img className="h-full w-full object-cover" src={requireSupabase().storage.from('hotel-gallery').getPublicUrl(photo.storage_path).data.publicUrl} alt={photo.alt_text || `${room.name}, photo ${index + 1}`} />
+                                    <button type="button" aria-label={`Supprimer la photo ${index + 1} de ${room.name}`} disabled={busy} onClick={() => removeRoomPhoto(photo)} className="absolute right-1 top-1 rounded-full bg-white p-1.5 text-red-700 shadow">
+                                      <Trash2 aria-hidden="true" className="h-3.5 w-3.5" />
+                                    </button>
+                                  </figure>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     ))}
                     {rooms.every(room => room.hotel_id !== hotel.id) && <p className="py-3 text-sm text-[#68736b]">Aucune chambre ajoutée.</p>}

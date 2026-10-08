@@ -152,6 +152,23 @@ export interface Database {
         },
         { alt_text?: string; sort_order?: number }
       >;
+      hotel_room_photos: Table<
+        {
+          id: string;
+          room_id: string;
+          storage_path: string;
+          alt_text: string;
+          sort_order: number;
+          created_at: string;
+        },
+        {
+          room_id: string;
+          storage_path: string;
+          alt_text?: string;
+          sort_order?: number;
+        },
+        { alt_text?: string; sort_order?: number }
+      >;
       hotel_subscription_plans: Table<
         {
           id: string;

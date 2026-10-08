@@ -204,3 +204,9 @@ Vérifications exécutées depuis `mboahotel-clean/` après retrait de la dépen
 - Comptes et espaces : `src/pages/Login.tsx`, `src/pages/Register.tsx`, `src/pages/Reservations.tsx`, `src/pages/Dashboard.tsx`, `src/pages/Favorites.tsx`, `src/components/FavoriteButton.tsx`.
 - Contact et avis : `src/pages/Contact.tsx`, `src/pages/Testimonials.tsx`, `src/pages/TestimonialAdmin.tsx`, `src/hooks/useTestimonials.ts`.
 - Configuration et contenu : `netlify.toml`, `package.json`, `package-lock.json`, `vite.config.ts`, `tailwind.config.js`, `postcss.config.js`, `src/index.css`, `index.html`, `public/_redirects`, `README.md`, `src/pages/Privacy.tsx`, `src/pages/Terms.tsx`.
+
+### Mise à jour — photos des chambres et plafond de galerie (9 octobre 2026)
+
+La migration incrémentale `supabase/migrations/20261009100000_hotel_room_photos.sql` ajoute une galerie liée à chaque chambre, les règles RLS correspondantes et la lecture publique des photos des chambres visibles. Le plafond `max_photos` s’applique désormais au total galerie de l’hôtel + photos de chambres, et reste contrôlé par trigger en base avec verrou consultatif pour éviter les dépassements concurrents. Dans l’espace hôtelier, l’ajout est grisé/désactivé quand le plafond est atteint, le nombre d’images utilisées/restantes est indiqué et les photos de chambre peuvent être ajoutées/supprimées. Les fiches publiques utilisent les images propres à la chambre, avec la galerie de l’établissement en solution de repli.
+
+**Déploiement :** appliquer uniquement cette nouvelle migration dans le SQL Editor Supabase après la migration de gestion hôtelière déjà exécutée. Ne pas rejouer les migrations antérieures. Après déploiement frontend et migration, vérifier avec un hôtel de test : ajout/suppression photo de galerie et de chambre, blocage au plafond combiné, visibilité des images sur une fiche publiée et absence d’accès d’un autre hôtelier aux images privées.

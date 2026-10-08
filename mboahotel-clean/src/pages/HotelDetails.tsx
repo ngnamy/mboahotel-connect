@@ -182,7 +182,7 @@ const HotelDetails: React.FC = () => {
       price: room.price,
       capacity: room.capacity,
       description: room.description,
-      images: publishedHotel.images,
+      images: room.images.length ? room.images : publishedHotel.images,
       availableCount: room.totalUnits,
     })),
     policies: {

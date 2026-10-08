@@ -8,6 +8,7 @@ export interface PublicHotelRoom {
   capacity: number;
   price: number;
   totalUnits: number;
+  images: string[];
 }
 
 export interface PublicHotel {
@@ -85,6 +86,22 @@ export const usePublicHotels = (hotelId?: string) => {
         if (photoError) throw photoError;
         if (entitlementError) throw entitlementError;
 
+        const roomIds = (roomRows ?? []).map(room => room.id);
+        const { data: roomPhotoRows, error: roomPhotoError } = roomIds.length
+          ? await client
+            .from('hotel_room_photos')
+            .select('room_id,storage_path,sort_order')
+            .in('room_id', roomIds)
+            .order('sort_order', { ascending: true })
+          : { data: [], error: null };
+        if (roomPhotoError) throw roomPhotoError;
+
+        const roomPhotosByRoom = new Map<string, string[]>();
+        for (const photo of roomPhotoRows ?? []) {
+          const images = roomPhotosByRoom.get(photo.room_id) ?? [];
+          images.push(client.storage.from('hotel-gallery').getPublicUrl(photo.storage_path).data.publicUrl);
+          roomPhotosByRoom.set(photo.room_id, images);
+        }
         const roomsByHotel = new Map<string, PublicHotelRoom[]>();
         for (const room of roomRows ?? []) {
           const hotelRooms = roomsByHotel.get(room.hotel_id) ?? [];
@@ -95,6 +112,7 @@ export const usePublicHotels = (hotelId?: string) => {
             capacity: room.capacity,
             price: room.price_xaf,
             totalUnits: room.total_units,
+            images: roomPhotosByRoom.get(room.id) ?? [],
           });
           roomsByHotel.set(room.hotel_id, hotelRooms);
         }
