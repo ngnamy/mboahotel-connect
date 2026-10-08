@@ -104,16 +104,16 @@ const Pagination: React.FC<PaginationProps> = ({
           {getPageNumbers().map((page, index) => (
             <React.Fragment key={index}>
               {page === '...' ? (
-                <span aria-hidden="true" className="hidden px-3 py-2 text-gray-500 sm:inline">...</span>
+                <span aria-hidden="true" className="px-2 py-2 text-gray-500">...</span>
               ) : (
                 <button
                   onClick={() => onPageChange(page as number)}
                   aria-label={`Page ${page}`}
                   aria-current={currentPage === page ? 'page' : undefined}
-                  className={`h-10 min-w-10 shrink-0 rounded-md px-2 sm:px-3 text-sm font-medium transition-colors ${
+                  className={`inline-flex h-10 min-w-10 shrink-0 items-center justify-center rounded-md border px-2 sm:px-3 text-sm font-medium transition-colors ${
                     currentPage === page
-                      ? 'bg-forest text-white'
-                      : 'hidden border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 sm:inline-flex'
+                      ? 'border-[#174c3a] bg-[#174c3a] text-white'
+                      : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
                   }`}
                 >
                   {page}
