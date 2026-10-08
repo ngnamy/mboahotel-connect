@@ -201,7 +201,7 @@ create policy "Hotel gallery and room images are publicly readable"
       exists (
         select 1 from public.hotel_photos photo
         join public.hotels hotel on hotel.id = photo.hotel_id
-        where photo.storage_path = name
+        where photo.storage_path = storage.objects.name
           and hotel.status = 'approved'
           and public.has_active_hotel_subscription(hotel.id)
       )
@@ -209,7 +209,7 @@ create policy "Hotel gallery and room images are publicly readable"
         select 1 from public.hotel_room_photos photo
         join public.hotel_rooms room on room.id = photo.room_id
         join public.hotels hotel on hotel.id = room.hotel_id
-        where photo.storage_path = name
+        where photo.storage_path = storage.objects.name
           and room.is_active
           and hotel.status = 'approved'
           and public.has_active_hotel_subscription(hotel.id)
