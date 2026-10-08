@@ -2,7 +2,6 @@
 
 > **La première plateforme camerounaise de réservation d'hôtels en ligne**
 
-[![Déployé sur Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://vercel.com)
 [![React](https://img.shields.io/badge/React-18.2.0-blue?style=for-the-badge&logo=react)](https://reactjs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?style=for-the-badge&logo=typescript)](https://typescriptlang.org)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind%20CSS-3.3-38B2AC?style=for-the-badge&logo=tailwind-css)](https://tailwindcss.com)
@@ -38,7 +37,7 @@ MboaHotel Connect est une application web moderne de réservation d'hôtels spé
 
 ## 🚀 **Démo en Ligne**
 
-🌐 **[Voir le Site en Direct](https://mboahotel-connect.vercel.app)**
+Le site sera accessible via le domaine Netlify choisi après le premier déploiement.
 
 ## 🛠️ **Technologies Utilisées**
 
@@ -60,13 +59,13 @@ MboaHotel Connect est une application web moderne de réservation d'hôtels spé
 
 ```bash
 # Cloner le repository
-git clone https://github.com/votre-username/mboahotel-connect.git
+git clone https://github.com/ngnamy/mboahotel-connect.git
 
-# Aller dans le dossier
-cd mboahotel-connect/client
+# Aller dans le dossier de l’application
+cd mboahotel-clean
 
-# Installer les dépendances
-npm install
+# Installer les dépendances verrouillées
+npm ci
 
 # Lancer en mode développement
 npm run dev
@@ -75,18 +74,24 @@ npm run dev
 npm run build
 ```
 
-## 🌍 **Déploiement**
+## 🌍 **Déploiement sur Netlify**
 
-### Vercel (Recommandé)
-1. Fork ce repository
-2. Connectez votre compte GitHub à [Vercel](https://vercel.com)
-3. Importez le projet
-4. Configurez le Root Directory sur `client`
-5. Déployez automatiquement !
+La configuration `netlify.toml` à la racine du dépôt définit le dossier de l’application (`mboahotel-clean`), la commande de build et le dossier publié. Le fichier `public/_redirects` prend en charge les routes React Router. Aucun serveur API n’est déployé par cette configuration.
 
-### Netlify
-1. Buildez le projet : `npm run build`
-2. Glissez-déposez le dossier `dist` sur [Netlify](https://netlify.com)
+### Associer le dépôt GitHub
+1. Connectez-vous à [Netlify](https://app.netlify.com/) et choisissez **Add new site** → **Import an existing project**.
+2. Connectez GitHub, autorisez l’accès au dépôt `ngnamy/mboahotel-connect`, puis sélectionnez ce dépôt et la branche `main`.
+3. Vérifiez les paramètres détectés depuis `netlify.toml` : base `mboahotel-clean`, commande `npm run build`, publication `dist`.
+4. Lancez le déploiement. Les prochains commits poussés sur `main` déclencheront automatiquement un nouveau build.
+5. Après le premier déploiement, choisissez un domaine Netlify ou associez votre propre domaine dans **Domain management** et activez HTTPS.
+
+### Déploiement local
+```bash
+cd mboahotel-clean
+npm ci
+npm run build
+```
+Publiez le contenu de `mboahotel-clean/dist` ou utilisez la liaison Netlify à GitHub pour le déploiement continu.
 
 ## 📱 **Captures d'Écran**
 
