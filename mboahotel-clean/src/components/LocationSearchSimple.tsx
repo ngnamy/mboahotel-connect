@@ -130,7 +130,7 @@ const LocationSearchSimple: React.FC<LocationSearchSimpleProps> = ({
           <button
             onClick={handleGetLocation}
             disabled={loading}
-            className="inline-flex w-fit max-w-full items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-forest px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-forest-dark disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex w-fit max-w-full items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-[#174c3a] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#103b2d] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {loading ? (
               <Loader2 className="w-4 h-4 animate-spin" />
