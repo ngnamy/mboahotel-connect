@@ -1070,13 +1070,15 @@ const Search: React.FC = () => {
                 <div key={hotel.id} className="bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow">
                   <div className="flex flex-col sm:flex-row">
                     {/* Image - Responsive */}
-                    <div className="relative h-48 w-full flex-shrink-0 image-container sm:w-64 sm:rounded-l-lg">
-                      <img 
-                        src={hotel.image} 
-                        alt={hotel.name}
-                        className="hotel-image-hover w-full h-full object-cover"
-                      />
-                      <FavoriteButton hotelId={hotel.id} />
+                    <div className="relative h-48 w-full flex-shrink-0 p-3 sm:h-auto sm:w-64 sm:p-4">
+                      <div className="group relative h-full w-full overflow-hidden rounded-xl">
+                        <img
+                          src={hotel.image}
+                          alt={hotel.name}
+                          className="hotel-image-hover"
+                        />
+                        <FavoriteButton hotelId={hotel.id} />
+                      </div>
                     </div>
 
                     {/* Informations - Responsive */}

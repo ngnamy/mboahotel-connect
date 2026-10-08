@@ -125,12 +125,12 @@ const LocationSearchSimple: React.FC<LocationSearchSimpleProps> = ({
       )}
 
       {/* Boutons d'action */}
-      <div className="flex gap-3">
+      <div className="flex flex-wrap gap-3">
         {!currentLocation ? (
           <button
             onClick={handleGetLocation}
             disabled={loading}
-            className="flex-1 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white font-medium py-3 px-4 rounded-xl transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center space-x-2"
+            className="inline-flex w-fit max-w-full items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-forest px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-forest-dark disabled:cursor-not-allowed disabled:opacity-50"
           >
             {loading ? (
               <Loader2 className="w-4 h-4 animate-spin" />
