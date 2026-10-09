@@ -61,6 +61,8 @@ export interface Database {
           phone: string;
           email: string;
           website: string | null;
+          latitude: number | null;
+          longitude: number | null;
           amenities: string[];
           stars: number;
           check_in_time: string | null;
@@ -80,6 +82,8 @@ export interface Database {
           phone: string;
           email: string;
           website?: string | null;
+          latitude?: number | null;
+          longitude?: number | null;
           amenities?: string[];
           stars?: number;
           check_in_time?: string | null;
@@ -95,6 +99,8 @@ export interface Database {
           phone?: string;
           email?: string;
           website?: string | null;
+          latitude?: number | null;
+          longitude?: number | null;
           amenities?: string[];
           stars?: number;
           check_in_time?: string | null;
@@ -313,6 +319,10 @@ export interface Database {
       get_public_hotel_entitlements: {
         Args: { p_hotel_ids: string[] };
         Returns: { hotel_id: string; priority_listing: boolean; featured_listing: boolean }[];
+      };
+      get_public_room_availability: {
+        Args: { p_room_ids: string[]; p_check_in: string; p_check_out: string };
+        Returns: { room_id: string; total_units: number; reserved_units: number; available_units: number }[];
       };
     };
     Enums: Record<string, never>;

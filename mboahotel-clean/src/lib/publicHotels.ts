@@ -8,6 +8,8 @@ export interface PublicHotelRoom {
   capacity: number;
   price: number;
   totalUnits: number;
+  availableUnits: number | null;
+  availabilityForDates: boolean;
   images: string[];
 }
 
@@ -21,6 +23,7 @@ export interface PublicHotel {
   phone: string;
   email: string;
   website: string | null;
+  coordinates: { latitude: number; longitude: number } | null;
   image: string;
   amenities: string[];
   stars: number;
@@ -34,7 +37,7 @@ export interface PublicHotel {
   rooms: PublicHotelRoom[];
 }
 
-export const usePublicHotels = (hotelId?: string) => {
+export const usePublicHotels = (hotelId?: string, checkIn?: string, checkOut?: string) => {
   const [hotels, setHotels] = useState<PublicHotel[]>([]);
   const [isLoading, setIsLoading] = useState(isSupabaseConfigured);
   const [error, setError] = useState<string | null>(null);
@@ -55,7 +58,7 @@ export const usePublicHotels = (hotelId?: string) => {
         const client = requireSupabase();
         let hotelQuery = client
           .from('hotels')
-          .select('id,name,description,address,city,region,phone,email,website,status,amenities,stars,check_in_time,check_out_time,cancellation_policy')
+          .select('id,name,description,address,city,region,phone,email,website,latitude,longitude,status,amenities,stars,check_in_time,check_out_time,cancellation_policy')
           .eq('status', 'approved')
           .order('created_at', { ascending: false });
         if (hotelId) hotelQuery = hotelQuery.eq('id', hotelId);
@@ -87,6 +90,16 @@ export const usePublicHotels = (hotelId?: string) => {
         if (entitlementError) throw entitlementError;
 
         const roomIds = (roomRows ?? []).map(room => room.id);
+        const validStay = Boolean(checkIn && checkOut && checkOut > checkIn);
+        const { data: availabilityRows, error: availabilityError } = validStay && roomIds.length
+          ? await client.rpc('get_public_room_availability', {
+            p_room_ids: roomIds,
+            p_check_in: checkIn,
+            p_check_out: checkOut,
+          })
+          : { data: [], error: null };
+        if (availabilityError) throw availabilityError;
+        const availabilityByRoom = new Map((availabilityRows ?? []).map(item => [item.room_id, item]));
         const { data: roomPhotoRows, error: roomPhotoError } = roomIds.length
           ? await client
             .from('hotel_room_photos')
@@ -112,6 +125,8 @@ export const usePublicHotels = (hotelId?: string) => {
             capacity: room.capacity,
             price: room.price_xaf,
             totalUnits: room.total_units,
+            availableUnits: validStay ? availabilityByRoom.get(room.id)?.available_units ?? 0 : null,
+            availabilityForDates: validStay,
             images: roomPhotosByRoom.get(room.id) ?? [],
           });
           roomsByHotel.set(room.hotel_id, hotelRooms);
@@ -139,6 +154,9 @@ export const usePublicHotels = (hotelId?: string) => {
             phone: hotel.phone,
             email: hotel.email,
             website: hotel.website,
+            coordinates: hotel.latitude !== null && hotel.longitude !== null
+              ? { latitude: hotel.latitude, longitude: hotel.longitude }
+              : null,
             image: images[0] ?? '/images/hotels/hotel-placeholder.svg',
             images: images.length ? images : ['/images/hotels/hotel-placeholder.svg'],
             amenities: hotel.amenities ?? [],
@@ -168,7 +186,7 @@ export const usePublicHotels = (hotelId?: string) => {
     return () => {
       active = false;
     };
-  }, [hotelId]);
+  }, [hotelId, checkIn, checkOut]);
 
   return { hotels, isConfigured: isSupabaseConfigured, isLoading, error };
 };

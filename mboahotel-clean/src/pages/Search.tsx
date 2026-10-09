@@ -25,7 +25,12 @@ interface Hotel {
   coordinates?: {
     latitude: number;
     longitude: number;
-  };
+  } | null;
+  rooms?: {
+    capacity: number;
+    price: number;
+    availableUnits: number | null;
+  }[];
   distance?: number;
 }
 
@@ -257,7 +262,6 @@ export const mockHotels: Hotel[] = [
 ];
 
 const Search: React.FC = () => {
-  const { hotels: publishedHotels, isConfigured, isLoading: isLoadingPublishedHotels, error: publishedHotelsError } = usePublicHotels();
   const [urlSearchParams, setUrlSearchParams] = useSearchParams();
   const [error, setError] = useState<string | null>(null);
   
@@ -272,6 +276,8 @@ const Search: React.FC = () => {
     priceRange: [0, 100000],
     minRating: 0,
     minStars: 0,
+    minRoomCapacity: 0,
+    availableRoomsOnly: false,
     amenities: [] as string[],
     hotelType: '',
     policies: [] as string[]
@@ -281,6 +287,16 @@ const Search: React.FC = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(5); // Nombre d'hôtels par page
+  const hasValidStayDates = Boolean(
+    searchParams.checkIn &&
+    searchParams.checkOut &&
+    searchParams.checkIn >= new Date().toISOString().slice(0, 10) &&
+    searchParams.checkOut > searchParams.checkIn
+  );
+  const { hotels: publishedHotels, isConfigured, isLoading: isLoadingPublishedHotels, error: publishedHotelsError } =
+    usePublicHotels(undefined, hasValidStayDates ? searchParams.checkIn : undefined, hasValidStayDates ? searchParams.checkOut : undefined);
+  const [nearbyOnly, setNearbyOnly] = useState(false);
+  const [nearbyRadius, setNearbyRadius] = useState(25);
   
   // État pour la géolocalisation
   const [userLocation, setUserLocation] = useState<{
@@ -305,8 +321,15 @@ const Search: React.FC = () => {
         stars: hotel.stars,
         priorityListing: hotel.priorityListing,
         featuredListing: hotel.featuredListing,
+        coordinates: hotel.coordinates,
+        rooms: hotel.rooms.map(room => ({
+          capacity: room.capacity,
+          price: room.price,
+          availableUnits: room.availableUnits,
+        })),
       }))
     : mockHotels;
+  const hotelsWithoutCoordinates = catalogHotels.filter(hotel => !hotel.coordinates).length;
 
   // Mettre à jour les paramètres de recherche quand l'URL change
   useEffect(() => {
@@ -320,20 +343,16 @@ const Search: React.FC = () => {
 
   // Fonctions pour la géolocalisation - Version simplifiée
   const handleLocationFound = (latitude: number, longitude: number, city: string, details?: any) => {
-    console.log('Location found:', { latitude, longitude, city, details });
     setUserLocation({ latitude, longitude, city, details });
-    
-    // Mettre automatiquement la destination
-    setSearchParams(prev => ({ ...prev, destination: city }));
-    
-    // Changer automatiquement le tri par distance
+    setNearbyOnly(true);
     setSortBy('distance');
-    
     setError(null);
   };
 
   const handleLocationCleared = () => {
     setUserLocation(null);
+    setNearbyOnly(false);
+    setSortBy(current => current === 'distance' ? 'price' : current);
   };
 
   // Calculer les distances quand la position de l'utilisateur change
@@ -361,7 +380,7 @@ const Search: React.FC = () => {
   // Réinitialiser la pagination quand le tri ou le nombre d'éléments par page change
   useEffect(() => {
     setCurrentPage(1);
-  }, [sortBy, itemsPerPage]);
+  }, [sortBy, itemsPerPage, filters, searchParams, nearbyOnly, nearbyRadius]);
 
   const amenityIcons: { [key: string]: React.ReactNode } = {
     'Wi-Fi gratuit': <Wifi className="w-4 h-4" />,
@@ -442,27 +461,16 @@ const Search: React.FC = () => {
     // Filtre par destination (paramètre de recherche principal)
     if (searchParams.destination && searchParams.destination.trim() !== '') {
       const searchTerm = searchParams.destination.toLowerCase().trim();
-      console.log('Filtering hotels for:', searchTerm);
-      // Si on a une géolocalisation, on peut être plus flexible et montrer tous les hôtels
-      // triés par distance plutôt que de filtrer strictement par ville
-      if (userLocation) {
-        // Afficher tous les hôtels mais ils seront triés par distance
-        console.log('Showing all hotels sorted by distance from user location');
-      } else {
-        // Filtrage normal par ville/nom/location
-        filtered = filtered.filter(hotel =>
-          hotel.city.toLowerCase().includes(searchTerm) ||
-          hotel.location.toLowerCase().includes(searchTerm) ||
-          hotel.name.toLowerCase().includes(searchTerm)
-        );
-      }
-      
+      filtered = filtered.filter(hotel =>
+        hotel.city.toLowerCase().includes(searchTerm) ||
+        hotel.location.toLowerCase().includes(searchTerm) ||
+        hotel.name.toLowerCase().includes(searchTerm)
+      );
     }
 
-    // Filtre par prix
-    filtered = filtered.filter(hotel => 
-      hotel.price >= filters.priceRange[0] && hotel.price <= filters.priceRange[1]
-    );
+    if (nearbyOnly && userLocation) {
+      filtered = filtered.filter(hotel => hotel.distance !== undefined && hotel.distance <= nearbyRadius);
+    }
 
     // Filtre par note
     if (filters.minRating > 0) {
@@ -480,6 +488,16 @@ const Search: React.FC = () => {
         filters.amenities.every(amenity => hotel.amenities.includes(amenity))
       );
     }
+
+    filtered = filtered.filter(hotel => hotel.rooms
+      ? hotel.rooms.some(room =>
+        room.price >= filters.priceRange[0] &&
+        room.price <= filters.priceRange[1] &&
+        room.capacity >= Math.max(filters.minRoomCapacity, isConfigured ? searchParams.guests : 0) &&
+        (!filters.availableRoomsOnly || !hasValidStayDates || room.availableUnits !== null && room.availableUnits > 0)
+      )
+      : hotel.price >= filters.priceRange[0] && hotel.price <= filters.priceRange[1]
+    );
 
     // Filtre par type d'hôtel
     if (filters.hotelType) {
@@ -509,11 +527,16 @@ const Search: React.FC = () => {
         return 0;
       }
     };
-    return sorted.sort((a, b) =>
-      Number(Boolean(b.featuredListing)) - Number(Boolean(a.featuredListing))
-      || Number(Boolean(b.priorityListing)) - Number(Boolean(a.priorityListing))
-      || bySelectedSort(a, b)
-    );
+    return sorted.sort((a, b) => {
+      if (sortBy === 'distance') {
+        return bySelectedSort(a, b)
+          || Number(Boolean(b.featuredListing)) - Number(Boolean(a.featuredListing))
+          || Number(Boolean(b.priorityListing)) - Number(Boolean(a.priorityListing));
+      }
+      return Number(Boolean(b.featuredListing)) - Number(Boolean(a.featuredListing))
+        || Number(Boolean(b.priorityListing)) - Number(Boolean(a.priorityListing))
+        || bySelectedSort(a, b);
+    });
   };
 
   // Hôtels avec distances calculées, puis filtrés et triés
@@ -688,8 +711,36 @@ const Search: React.FC = () => {
                     
                     <div className="flex items-center text-green-600 mt-3 pt-2 border-t border-green-200">
                       <span className="mr-2">🎯</span>
-                      <span className="font-medium">Hôtels triés par distance depuis cette position</span>
+                      <span className="font-medium">Distance calculée depuis cette position</span>
                     </div>
+                  </div>
+                  <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-green-200 pt-4 text-sm">
+                    <label className="flex items-center gap-2 font-medium text-green-900">
+                      <input
+                        type="checkbox"
+                        checked={nearbyOnly}
+                        onChange={event => setNearbyOnly(event.target.checked)}
+                      />
+                      Limiter les résultats à proximité
+                    </label>
+                    {nearbyOnly && (
+                      <label className="flex items-center gap-2 text-green-900">
+                        Rayon
+                        <select
+                          className="input w-24 bg-white"
+                          value={nearbyRadius}
+                          onChange={event => setNearbyRadius(Number(event.target.value))}
+                        >
+                          {[5, 10, 25, 50, 100].map(radius => (
+                            <option key={radius} value={radius}>{radius} km</option>
+                          ))}
+                        </select>
+                      </label>
+                    )}
+                    <p className="w-full text-xs leading-5 text-green-800">
+                      Seuls les établissements dont la position GPS a été renseignée peuvent être inclus dans ce rayon.
+                      {hotelsWithoutCoordinates > 0 && ` ${hotelsWithoutCoordinates} établissement(s) affiché(s) hors du rayon car leur position manque.`}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -709,6 +760,8 @@ const Search: React.FC = () => {
                       priceRange: [0, 100000],
                       minRating: 0,
                       minStars: 0,
+                      minRoomCapacity: 0,
+                      availableRoomsOnly: false,
                       amenities: [],
                       hotelType: '',
                       policies: []
@@ -728,7 +781,7 @@ const Search: React.FC = () => {
 
               {/* Filtres actifs - Responsive */}
               {(filters.priceRange[0] !== 0 || filters.priceRange[1] !== 100000 || 
-                filters.minRating > 0 || filters.minStars > 0 || 
+                filters.minRating > 0 || filters.minStars > 0 || filters.minRoomCapacity > 0 || filters.availableRoomsOnly ||
                 filters.amenities.length > 0 || filters.hotelType || 
                 filters.policies.length > 0) && (
                 <div className="mb-6">
@@ -747,6 +800,16 @@ const Search: React.FC = () => {
                     {filters.minStars > 0 && (
                       <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs sm:text-sm">
                         {filters.minStars}+ étoiles
+                      </span>
+                    )}
+                    {filters.minRoomCapacity > 0 && (
+                      <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs sm:text-sm">
+                        Chambres : {filters.minRoomCapacity}+ personnes
+                      </span>
+                    )}
+                    {filters.availableRoomsOnly && (
+                      <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs sm:text-sm">
+                        Chambres disponibles aux dates choisies
                       </span>
                     )}
                     {filters.hotelType && (
@@ -823,6 +886,45 @@ const Search: React.FC = () => {
                       />
                       <span>Tous les prix</span>
                     </label>
+                  </div>
+                </div>
+
+                {/* Filtres portant sur les types de chambres */}
+                <div className="border-t pt-5">
+                  <h4 className="font-medium mb-3">Chambres</h4>
+                  <div className="space-y-3">
+                    <label className="grid gap-2 text-sm">
+                      Capacité minimale
+                      <select
+                        className="input"
+                        value={filters.minRoomCapacity}
+                        onChange={event => setFilters(prev => ({
+                          ...prev,
+                          minRoomCapacity: Number(event.target.value),
+                        }))}
+                      >
+                        <option value={0}>Toutes les capacités</option>
+                        {[1, 2, 3, 4, 5, 6].map(capacity => (
+                          <option key={capacity} value={capacity}>{capacity}+ personne{capacity > 1 ? 's' : ''}</option>
+                        ))}
+                      </select>
+                    </label>
+                    {hasValidStayDates ? (
+                      <label className="flex items-start gap-2 text-sm leading-5">
+                        <input
+                          type="checkbox"
+                          className="mt-1"
+                          checked={filters.availableRoomsOnly}
+                          onChange={event => setFilters(prev => ({
+                            ...prev,
+                            availableRoomsOnly: event.target.checked,
+                          }))}
+                        />
+                        <span>Afficher uniquement les chambres disponibles pour ces dates</span>
+                      </label>
+                    ) : (
+                      <p className="text-xs leading-5 text-gray-500">Indiquez les dates du séjour pour filtrer par disponibilité réelle.</p>
+                    )}
                   </div>
                 </div>
 
@@ -962,7 +1064,7 @@ const Search: React.FC = () => {
                   <Filter className="w-5 h-5 text-gray-600" />
                   <span className="font-medium">Filtres</span>
                   {(filters.priceRange[0] !== 0 || filters.priceRange[1] !== 100000 || 
-                    filters.minRating > 0 || filters.minStars > 0 || 
+                    filters.minRating > 0 || filters.minStars > 0 || filters.minRoomCapacity > 0 || filters.availableRoomsOnly ||
                     filters.amenities.length > 0 || filters.hotelType || 
                     filters.policies.length > 0) && (
                     <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs">
@@ -1058,6 +1160,8 @@ const Search: React.FC = () => {
                           priceRange: [0, 100000],
                           minRating: 0,
                           minStars: 0,
+                          minRoomCapacity: 0,
+                          availableRoomsOnly: false,
                           amenities: [],
                           hotelType: '',
                           policies: []
@@ -1072,6 +1176,8 @@ const Search: React.FC = () => {
                         priceRange: [0, 100000],
                         minRating: 0,
                         minStars: 0,
+                        minRoomCapacity: 0,
+                        availableRoomsOnly: false,
                         amenities: [],
                         hotelType: '',
                         policies: []
@@ -1108,7 +1214,7 @@ const Search: React.FC = () => {
                           <div className="flex items-center mt-1">
                             <MapPin className="w-4 h-4 text-gray-400 mr-1" />
                             <span className="text-sm text-gray-600">{hotel.location}</span>
-                            {hotel.distance && (
+                            {hotel.distance !== undefined && (
                               <span className="ml-2 bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">
                                 📍 {formatDistance(hotel.distance)}
                               </span>
@@ -1167,9 +1273,17 @@ const Search: React.FC = () => {
                             <div className="text-sm font-medium text-gray-600">Tarif à confirmer auprès de l’établissement</div>
                           )}
                         </div>
+                        {hasValidStayDates && hotel.rooms && (
+                          <p className="text-xs text-gray-600">
+                            {hotel.rooms.filter(room => room.availableUnits !== null && room.availableUnits > 0).length} type(s) de chambre disponible(s) aux dates choisies
+                          </p>
+                        )}
                         
                         <Link 
-                          to={`/hotel/${hotel.id}`}
+                          to={`/hotel/${hotel.id}?${new URLSearchParams({
+                            ...(searchParams.checkIn ? { checkIn: searchParams.checkIn } : {}),
+                            ...(searchParams.checkOut ? { checkOut: searchParams.checkOut } : {}),
+                          }).toString()}`}
                           className="btn-primary inline-block text-center w-full sm:w-auto"
                         >
                           Voir l'hôtel

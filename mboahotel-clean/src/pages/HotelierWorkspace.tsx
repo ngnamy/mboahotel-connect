@@ -34,6 +34,9 @@ const HotelierWorkspace: React.FC<HotelierWorkspaceProps> = ({ hotels, rooms, bu
   const [hotelPhone, setHotelPhone] = useState('');
   const [hotelEmail, setHotelEmail] = useState('');
   const [hotelWebsite, setHotelWebsite] = useState('');
+  const [hotelLatitude, setHotelLatitude] = useState('');
+  const [hotelLongitude, setHotelLongitude] = useState('');
+  const [hotelLocationError, setHotelLocationError] = useState('');
   const [amenitiesText, setAmenitiesText] = useState('');
   const [hotelStars, setHotelStars] = useState('0');
   const [checkInTime, setCheckInTime] = useState('');
@@ -143,6 +146,7 @@ const HotelierWorkspace: React.FC<HotelierWorkspaceProps> = ({ hotels, rooms, bu
 
   useEffect(() => {
     if (!selectedHotel) return;
+    setHotelLocationError('');
     setHotelName(selectedHotel.name);
     setHotelDescription(selectedHotel.description);
     setHotelAddress(selectedHotel.address);
@@ -151,6 +155,8 @@ const HotelierWorkspace: React.FC<HotelierWorkspaceProps> = ({ hotels, rooms, bu
     setHotelPhone(selectedHotel.phone);
     setHotelEmail(selectedHotel.email);
     setHotelWebsite(selectedHotel.website ?? '');
+    setHotelLatitude(selectedHotel.latitude === null ? '' : String(selectedHotel.latitude));
+    setHotelLongitude(selectedHotel.longitude === null ? '' : String(selectedHotel.longitude));
     setAmenitiesText(selectedHotel.amenities.join(', '));
     setHotelStars(String(selectedHotel.stars));
     setCheckInTime(selectedHotel.check_in_time?.slice(0, 5) ?? '');
@@ -195,6 +201,20 @@ const HotelierWorkspace: React.FC<HotelierWorkspaceProps> = ({ hotels, rooms, bu
   const saveHotel = (event: FormEvent) => {
     event.preventDefault();
     if (!selectedHotel) return;
+    const latitude = hotelLatitude.trim() ? Number(hotelLatitude) : null;
+    const longitude = hotelLongitude.trim() ? Number(hotelLongitude) : null;
+    if ((latitude === null) !== (longitude === null)) {
+      setHotelLocationError('Renseignez la latitude et la longitude, ou laissez les deux champs vides.');
+      return;
+    }
+    if (
+      latitude !== null && (!Number.isFinite(latitude) || latitude < -90 || latitude > 90) ||
+      longitude !== null && (!Number.isFinite(longitude) || longitude < -180 || longitude > 180)
+    ) {
+      setHotelLocationError('Coordonnées invalides : latitude de -90 à 90 et longitude de -180 à 180.');
+      return;
+    }
+    setHotelLocationError('');
     void runAction(async () => {
       const { error } = await requireSupabase().from('hotels').update({
         name: hotelName.trim(),
@@ -205,6 +225,8 @@ const HotelierWorkspace: React.FC<HotelierWorkspaceProps> = ({ hotels, rooms, bu
         phone: hotelPhone.trim(),
         email: hotelEmail.trim(),
         website: hotelWebsite.trim() || null,
+        latitude,
+        longitude,
         amenities: amenitiesText.split(',').map(item => item.trim()).filter(Boolean),
         stars: Number(hotelStars),
         check_in_time: checkInTime || null,
@@ -214,6 +236,29 @@ const HotelierWorkspace: React.FC<HotelierWorkspaceProps> = ({ hotels, rooms, bu
       }).eq('id', selectedHotel.id);
       if (error) throw error;
     }, 'La fiche a été enregistrée. Une modification des informations publiques exige une nouvelle validation.');
+  };
+
+  const useCurrentHotelLocation = () => {
+    if (!navigator.geolocation) {
+      setHotelLocationError('La géolocalisation n’est pas prise en charge par ce navigateur.');
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      position => {
+        setHotelLatitude(position.coords.latitude.toFixed(6));
+        setHotelLongitude(position.coords.longitude.toFixed(6));
+        setHotelLocationError('');
+      },
+      locationError => {
+        const message = locationError.code === locationError.PERMISSION_DENIED
+          ? 'Autorisez la géolocalisation pour renseigner la position de l’établissement.'
+          : locationError.code === locationError.TIMEOUT
+            ? 'La localisation a expiré. Réessayez ou saisissez les coordonnées manuellement.'
+            : 'Position indisponible. Réessayez sur place ou saisissez les coordonnées manuellement.';
+        setHotelLocationError(message);
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 }
+    );
   };
 
   const submitRoom = (event: FormEvent) => {
@@ -408,6 +453,24 @@ const HotelierWorkspace: React.FC<HotelierWorkspaceProps> = ({ hotels, rooms, bu
                 <label className="grid gap-2 text-sm font-medium">Téléphone<input className="input" type="tel" required value={hotelPhone} onChange={event => setHotelPhone(event.target.value)} /></label>
                 <label className="grid gap-2 text-sm font-medium">E-mail<input className="input" type="email" required value={hotelEmail} onChange={event => setHotelEmail(event.target.value)} /></label>
                 <label className="grid gap-2 text-sm font-medium">Site web<input className="input" type="url" placeholder="https://" value={hotelWebsite} onChange={event => setHotelWebsite(event.target.value)} /></label>
+                <div className="grid gap-3 sm:col-span-2">
+                  <div>
+                    <p className="text-sm font-medium">Position GPS de l’établissement</p>
+                    <p className="mt-1 text-xs text-[#68736b]">Renseignez-la depuis l’hôtel pour permettre aux voyageurs de trier les hébergements par proximité.</p>
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <label className="grid gap-2 text-sm font-medium">Latitude
+                      <input className="input" type="number" step="any" min="-90" max="90" value={hotelLatitude} onChange={event => { setHotelLatitude(event.target.value); setHotelLocationError(''); }} placeholder="Ex. 3.848000" />
+                    </label>
+                    <label className="grid gap-2 text-sm font-medium">Longitude
+                      <input className="input" type="number" step="any" min="-180" max="180" value={hotelLongitude} onChange={event => { setHotelLongitude(event.target.value); setHotelLocationError(''); }} placeholder="Ex. 11.502100" />
+                    </label>
+                  </div>
+                  <button className="btn-secondary w-fit" type="button" disabled={busy} onClick={useCurrentHotelLocation}>
+                    Utiliser ma position actuelle (à faire sur place)
+                  </button>
+                  {hotelLocationError && <p role="alert" className="text-sm text-red-700">{hotelLocationError}</p>}
+                </div>
                 <label className="grid gap-2 text-sm font-medium">Classement hôtelier
                   <select className="input" value={hotelStars} onChange={event => setHotelStars(event.target.value)}>
                     {[0, 1, 2, 3, 4, 5].map(stars => <option key={stars} value={stars}>{stars === 0 ? 'Non renseigné' : `${stars} étoile${stars > 1 ? 's' : ''}`}</option>)}

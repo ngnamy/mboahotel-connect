@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { useCart } from '../contexts/CartContext';
 import { 
   Star, 
@@ -36,6 +36,7 @@ interface Room {
   description?: string;
   images: string[];
   availableCount: number;
+  availabilityForDates?: boolean;
 }
 
 interface Review {
@@ -153,8 +154,26 @@ const getRatingText = (rating: number) => {
 
 const HotelDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
   const { addItem } = useCart();
-  const { hotels: publishedHotels, isConfigured, isLoading, error: publishedHotelsError } = usePublicHotels(id);
+  const [checkIn, setCheckIn] = useState(() => {
+    if (searchParams.get('checkIn')) return searchParams.get('checkIn')!;
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    return tomorrow.toISOString().split('T')[0];
+  });
+  const [checkOut, setCheckOut] = useState(() => {
+    if (searchParams.get('checkOut')) return searchParams.get('checkOut')!;
+    const dayAfterTomorrow = new Date();
+    dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 2);
+    return dayAfterTomorrow.toISOString().split('T')[0];
+  });
+  const hasValidStayDates = Boolean(
+    checkIn >= new Date().toISOString().slice(0, 10) &&
+    checkOut > checkIn
+  );
+  const { hotels: publishedHotels, isConfigured, isLoading, error: publishedHotelsError } =
+    usePublicHotels(id, hasValidStayDates ? checkIn : undefined, hasValidStayDates ? checkOut : undefined);
   const publishedHotel = publishedHotels[0];
   const detailedHotel = !isConfigured ? mockHotels.find(h => h.id === id) : undefined;
   const catalogHotel = !isConfigured ? catalogHotels.find(h => h.id === id) : undefined;
@@ -183,7 +202,8 @@ const HotelDetails: React.FC = () => {
       capacity: room.capacity,
       description: room.description,
       images: room.images.length ? room.images : publishedHotel.images,
-      availableCount: room.totalUnits,
+      availableCount: room.availableUnits ?? 0,
+      availabilityForDates: room.availabilityForDates,
     })),
     policies: {
       checkIn: publishedHotel.checkInTime?.slice(0, 5) || 'À confirmer auprès de l’établissement',
@@ -221,16 +241,18 @@ const HotelDetails: React.FC = () => {
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
   const [galleryImages, setGalleryImages] = useState<string[]>([]);
   const [feedback, setFeedback] = useState('');
-  const [checkIn, setCheckIn] = useState(() => {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    return tomorrow.toISOString().split('T')[0];
-  });
-  const [checkOut, setCheckOut] = useState(() => {
-    const dayAfterTomorrow = new Date();
-    dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 2);
-    return dayAfterTomorrow.toISOString().split('T')[0];
-  });
+
+  useEffect(() => {
+    if (!publishedHotel || isLoading) return;
+    setSelectedRooms(current => Object.fromEntries(
+      Object.entries(current)
+        .map(([roomId, quantity]) => {
+          const available = publishedHotel.rooms.find(room => room.id === roomId)?.availableUnits ?? 0;
+          return [roomId, Math.min(quantity, available)];
+        })
+        .filter(([, quantity]) => Number(quantity) > 0)
+    ));
+  }, [publishedHotel, isLoading]);
 
   const initialReviews: Review[] = !isLiveListing && hotel ? [
     {
@@ -275,7 +297,7 @@ const HotelDetails: React.FC = () => {
       const newQty = currentQty + increment;
 
       if (newQty > room.availableCount) {
-        return prev; // Ne pas dépasser le nombre de chambres disponibles
+        return prev;
       }
 
       const newSelection = { ...prev };
@@ -402,7 +424,7 @@ const HotelDetails: React.FC = () => {
       <div className="page-container py-8">
         <p role="note" className="mb-6 rounded-xl border border-[#e4d0a2] bg-[#f8f3e9] p-4 text-sm leading-6 text-[#5c4324]">
           {isLiveListing
-            ? 'Établissement partenaire publié. Les tarifs et la disponibilité par date sont à confirmer directement auprès de l’hôtel ; les réservations en ligne ne sont pas encore activées.'
+            ? 'Établissement partenaire publié. La disponibilité est calculée pour les dates choisies à partir des réservations confirmées ; contactez l’établissement pour confirmer votre séjour. La sélection ne constitue pas une réservation.'
             : 'Fiche de démonstration : établissement, tarifs, avis et disponibilités à confirmer directement auprès de l’hôtel.'}
         </p>
         {feedback && <p role="status" className="mb-6 rounded-xl border border-[#bfd4c4] bg-[#eef4ef] p-4 text-sm leading-6 text-[#103b2d]">{feedback}</p>}
@@ -495,18 +517,24 @@ const HotelDetails: React.FC = () => {
                         <h3 className="font-semibold text-lg">{room.name}</h3>
                         <p className="text-sm text-gray-600 mb-1">Capacité: {room.capacity} personnes</p>
                         {room.description && <p className="mb-2 text-sm leading-5 text-gray-600">{room.description}</p>}
-                        {isLiveListing
-                          ? <p className="text-sm text-gray-600">{room.availableCount} unité{room.availableCount > 1 ? 's' : ''} déclarée{room.availableCount > 1 ? 's' : ''} · Disponibilité à confirmer</p>
-                          : <p className={`text-sm font-medium ${room.availableCount > 0 ? (room.availableCount < 4 ? 'text-orange-600' : 'text-green-600') : 'text-red-600'}`}>
-                              {room.availableCount > 0 ? `Plus que ${room.availableCount} disponible${room.availableCount > 1 ? 's' : ''}` : 'Épuisé'}
-                            </p>}
+                        {isLiveListing && isLoading ? (
+                          <span role="status" className="inline-flex rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700">Mise à jour…</span>
+                        ) : isLiveListing && !room.availabilityForDates ? (
+                          <span className="inline-flex rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700">Choisissez vos dates</span>
+                        ) : (
+                          <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${room.availableCount > 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                            {room.availableCount > 0
+                              ? `Disponible · ${room.availableCount} unité${room.availableCount > 1 ? 's' : ''}`
+                              : 'Épuisé'}
+                          </span>
+                        )}
                       </div>
                       <div className="flex-shrink-0 text-right">
                         <p className="font-bold text-lg mb-2">{room.price.toLocaleString()} XAF / nuit</p>
-                        {!isLiveListing && <div className="flex items-center justify-end space-x-2">
+                        <div className="flex items-center justify-end space-x-2">
                           <button 
                             onClick={() => handleSelectRoom(room.id, -1)}
-                            disabled={!selectedRooms[room.id] || selectedRooms[room.id] === 0}
+                            disabled={!selectedRooms[room.id] || selectedRooms[room.id] === 0 || (isLiveListing && (isLoading || !room.availabilityForDates))}
                             className="p-1 rounded-full bg-gray-200 text-gray-700 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             <MinusCircle className="w-5 h-5" />
@@ -516,12 +544,12 @@ const HotelDetails: React.FC = () => {
                           </span>
                           <button 
                             onClick={() => handleSelectRoom(room.id, 1)}
-                            disabled={room.availableCount === 0 || (selectedRooms[room.id] || 0) >= room.availableCount}
+                            disabled={room.availableCount === 0 || (isLiveListing && (isLoading || !room.availabilityForDates)) || (selectedRooms[room.id] || 0) >= room.availableCount}
                             className="p-1 rounded-full bg-gray-200 text-gray-700 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             <PlusCircle className="w-5 h-5" />
                           </button>
-                        </div>}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -582,7 +610,44 @@ const HotelDetails: React.FC = () => {
           <div className="lg:col-span-1">
             <div className="page-card p-5 sm:sticky sm:top-24 sm:p-6">
               <h3 className="text-xl font-bold text-gray-900 mb-3">Contacter l’établissement</h3>
-              <p className="mb-5 text-sm leading-6 text-gray-600">La réservation en ligne n’est pas encore disponible. Contactez directement l’établissement pour vérifier les tarifs et les disponibilités de vos dates.</p>
+              <div className="mb-5">
+                <div className="grid grid-cols-2 gap-3">
+                  <label className="grid gap-1 text-sm font-medium text-gray-700">
+                    Arrivée
+                    <input
+                      type="date"
+                      value={checkIn}
+                      onChange={event => setCheckIn(event.target.value)}
+                      min={new Date().toISOString().slice(0, 10)}
+                      className="input text-sm"
+                    />
+                  </label>
+                  <label className="grid gap-1 text-sm font-medium text-gray-700">
+                    Départ
+                    <input
+                      type="date"
+                      value={checkOut}
+                      onChange={event => setCheckOut(event.target.value)}
+                      min={checkIn}
+                      className="input text-sm"
+                    />
+                  </label>
+                </div>
+                <p className="mt-2 text-sm text-gray-600">{nights} nuit{nights > 1 ? 's' : ''}</p>
+              </div>
+              {bookingSummary.items.length > 0 && (
+                <div className="mb-5 space-y-2 border-y py-4">
+                  <h4 className="text-sm font-semibold text-gray-900">Votre sélection indicative</h4>
+                  {bookingSummary.items.map(item => (
+                    <div key={item.id} className="flex justify-between gap-3 text-sm">
+                      <span>{item.quantity} × {item.name}</span>
+                      <span className="font-medium">{item.total.toLocaleString()} XAF</span>
+                    </div>
+                  ))}
+                  <p className="text-right text-sm font-bold">Estimation : {bookingSummary.total.toLocaleString()} XAF</p>
+                </div>
+              )}
+              <p className="mb-5 text-sm leading-6 text-gray-600">La réservation en ligne n’est pas encore disponible. Contactez directement l’établissement pour confirmer le tarif et le séjour. La sélection des chambres ne bloque pas le stock.</p>
               <div className="grid gap-3">
                 {hotel.phone && <a href={`tel:${hotel.phone}`} className="btn-primary w-full">{hotel.phone}</a>}
                 {hotel.email && <a href={`mailto:${hotel.email}`} className="btn-secondary w-full break-all">{hotel.email}</a>}
