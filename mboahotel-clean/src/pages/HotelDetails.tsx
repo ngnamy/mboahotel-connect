@@ -35,7 +35,7 @@ interface Room {
   capacity: number;
   description?: string;
   images: string[];
-  availableCount: number;
+  availableCount: number | null;
   availabilityForDates?: boolean;
 }
 
@@ -202,7 +202,7 @@ const HotelDetails: React.FC = () => {
       capacity: room.capacity,
       description: room.description,
       images: room.images.length ? room.images : publishedHotel.images,
-      availableCount: room.availableUnits ?? 0,
+      availableCount: room.availableUnits,
       availabilityForDates: room.availabilityForDates,
     })),
     policies: {
@@ -247,8 +247,8 @@ const HotelDetails: React.FC = () => {
     setSelectedRooms(current => Object.fromEntries(
       Object.entries(current)
         .map(([roomId, quantity]) => {
-          const available = publishedHotel.rooms.find(room => room.id === roomId)?.availableUnits ?? 0;
-          return [roomId, Math.min(quantity, available)];
+          const available = publishedHotel.rooms.find(room => room.id === roomId)?.availableUnits;
+          return [roomId, available === null || available === undefined ? quantity : Math.min(quantity, available)];
         })
         .filter(([, quantity]) => Number(quantity) > 0)
     ));
@@ -296,7 +296,7 @@ const HotelDetails: React.FC = () => {
       const currentQty = prev[roomId] || 0;
       const newQty = currentQty + increment;
 
-      if (newQty > room.availableCount) {
+      if (room.availableCount === null || newQty > room.availableCount) {
         return prev;
       }
 
@@ -521,9 +521,11 @@ const HotelDetails: React.FC = () => {
                           <span role="status" className="inline-flex rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700">Mise à jour…</span>
                         ) : isLiveListing && !room.availabilityForDates ? (
                           <span className="inline-flex rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700">Choisissez vos dates</span>
+                        ) : isLiveListing && room.availableCount === null ? (
+                          <span role="status" className="inline-flex rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-900">Disponibilité à vérifier</span>
                         ) : (
-                          <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${room.availableCount > 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                            {room.availableCount > 0
+                          <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${room.availableCount !== null && room.availableCount > 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                            {room.availableCount !== null && room.availableCount > 0
                               ? `Disponible · ${room.availableCount} unité${room.availableCount > 1 ? 's' : ''}`
                               : 'Épuisé'}
                           </span>
@@ -544,7 +546,7 @@ const HotelDetails: React.FC = () => {
                           </span>
                           <button 
                             onClick={() => handleSelectRoom(room.id, 1)}
-                            disabled={room.availableCount === 0 || (isLiveListing && (isLoading || !room.availabilityForDates)) || (selectedRooms[room.id] || 0) >= room.availableCount}
+                            disabled={room.availableCount === null || room.availableCount === 0 || (isLiveListing && (isLoading || !room.availabilityForDates)) || (selectedRooms[room.id] || 0) >= room.availableCount}
                             className="p-1 rounded-full bg-gray-200 text-gray-700 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             <PlusCircle className="w-5 h-5" />

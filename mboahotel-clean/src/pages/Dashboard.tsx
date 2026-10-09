@@ -1,6 +1,7 @@
 import React, { FormEvent, useCallback, useEffect, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { Check, Clock3, Plus, X } from 'lucide-react';
+import { BadgeCheck, Building2, Check, Clock3, CreditCard, LayoutDashboard, Plus, Users, X } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import PageIntro from '../components/PageIntro';
 import { useAuth } from '../contexts/AuthContext';
 import { requireSupabase } from '../lib/supabase';
@@ -11,6 +12,8 @@ import SubscriptionManagement from './SubscriptionManagement';
 type Application = Database['public']['Tables']['partner_applications']['Row'];
 type Hotel = Database['public']['Tables']['hotels']['Row'];
 type Room = Database['public']['Tables']['hotel_rooms']['Row'];
+type DashboardSection = 'overview' | 'partners' | 'hotels' | 'subscriptions';
+type DashboardMenuItem = { id: DashboardSection; label: string; icon: LucideIcon };
 
 const errorMessage = (error: unknown) => {
   if (error instanceof Error) return error.message;
@@ -38,6 +41,7 @@ const Dashboard: React.FC = () => {
   const [businessName, setBusinessName] = useState('');
   const [businessCity, setBusinessCity] = useState('');
   const [businessPhone, setBusinessPhone] = useState(user?.phone ?? '');
+  const [activeSection, setActiveSection] = useState<DashboardSection>('overview');
   const loadData = useCallback(async () => {
     if (!user) return;
     setLoading(true);
@@ -59,6 +63,7 @@ const Dashboard: React.FC = () => {
         if (hotelsError) throw hotelsError;
         setApplications(data ?? []);
         setReviewHotels(hotelsData ?? []);
+        setHotels(hotelsData ?? []);
         if (data?.length) {
           const { data: profiles, error: profilesError } = await client
             .from('profiles')
@@ -156,6 +161,18 @@ const Dashboard: React.FC = () => {
   };
 
   if (!user) return null;
+  const dashboardItems = user.role === 'admin'
+    ? [
+        { id: 'overview' as const, label: 'Vue d’ensemble', icon: LayoutDashboard },
+        { id: 'partners' as const, label: 'Demandes partenaires', icon: Users },
+        { id: 'hotels' as const, label: 'Établissements', icon: Building2 },
+        { id: 'subscriptions' as const, label: 'Abonnements', icon: CreditCard },
+      ]
+    : [
+        { id: 'overview' as const, label: 'Vue d’ensemble', icon: LayoutDashboard },
+        { id: 'hotels' as const, label: 'Mes établissements', icon: Building2 },
+        { id: 'subscriptions' as const, label: 'Abonnements', icon: CreditCard },
+      ];
 
   return (
     <div className="page-shell">
@@ -165,11 +182,11 @@ const Dashboard: React.FC = () => {
       <div className="page-container">
         <PageIntro
           eyebrow={user.role === 'admin' ? 'Administration' : 'Espace partenaire'}
-          title={user.role === 'admin' ? 'Demandes partenaires' : 'Votre tableau de bord'}
+          title={user.role === 'admin' ? 'Tableau de bord' : 'Votre espace de gestion'}
           description={user.role === 'admin'
-            ? 'Examinez les demandes et accordez l’accès hôtelier après vérification.'
+            ? 'Pilotez les demandes, les établissements et les abonnements depuis un espace central.'
             : user.role === 'hotelier'
-              ? 'Gérez vos établissements et leurs types de chambres.'
+              ? 'Gérez vos hébergements, vos chambres et vos formules.'
               : 'Soumettez une demande pour ouvrir votre espace de gestion hôtelière.'}
         />
 
@@ -179,64 +196,106 @@ const Dashboard: React.FC = () => {
         {loading ? (
           <p role="status" className="text-sm text-[#68736b]">Chargement des données…</p>
         ) : user.role === 'admin' ? (
-          <section className="space-y-4">
-            {applications.length === 0 ? (
-              <div className="page-card p-6 text-sm text-[#68736b]">Aucune demande partenaire à traiter.</div>
-            ) : applications.map(application => (
-              <article key={application.id} className="page-card flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <h2 className="font-semibold text-[#17251f]">{application.business_name}</h2>
-                  <p className="mt-1 text-sm text-[#68736b]">{application.city} · {application.phone}</p>
-                  <p className="mt-1 text-sm text-[#68736b]">{applicantDetails[application.user_id]?.name || applicantDetails[application.user_id]?.email || application.user_id}</p>
-                  <p className="mt-1 text-xs text-[#68736b]">État : {application.status} · Soumise le {new Date(application.submitted_at).toLocaleDateString('fr-FR')}</p>
-                </div>
-                {application.status === 'pending' && (
-                  <div className="flex flex-wrap gap-2">
-                    <button type="button" disabled={busy} onClick={() => reviewApplication(application.id, true)} className="btn-primary">
-                      <Check aria-hidden="true" className="h-4 w-4" /> Approuver
-                    </button>
-                    <button type="button" disabled={busy} onClick={() => reviewApplication(application.id, false)} className="btn-secondary">
-                      <X aria-hidden="true" className="h-4 w-4" /> Refuser
-                    </button>
+          <div className="grid gap-6 lg:grid-cols-[240px_minmax(0,1fr)]">
+            <DashboardMenu items={dashboardItems} activeSection={activeSection} onSelect={setActiveSection} />
+            <section className="min-w-0 space-y-5">
+              {activeSection === 'overview' && (
+                <>
+                  <div className="grid gap-4 sm:grid-cols-3">
+                    <DashboardMetric label="Demandes partenaires" value={applications.filter(item => item.status === 'pending').length} detail="À examiner" icon={Users} />
+                    <DashboardMetric label="À valider" value={reviewHotels.filter(item => item.status === 'pending' || item.status === 'rejected').length} detail="Fiches établissement" icon={Clock3} />
+                    <DashboardMetric label="Établissements publiés" value={reviewHotels.filter(item => item.status === 'approved').length} detail="Visibles sur le catalogue" icon={BadgeCheck} />
                   </div>
-                )}
-              </article>
-            ))}
-            <div className="pt-6">
-              <h2 className="section-title">Établissements à vérifier</h2>
-              <p className="mt-1 text-sm text-[#68736b]">Seuls les établissements approuvés sont visibles publiquement.</p>
-            </div>
-            {reviewHotels.length === 0 ? (
-              <div className="page-card p-6 text-sm text-[#68736b]">Aucun établissement soumis pour le moment.</div>
-            ) : reviewHotels.map(hotel => (
-              <article key={hotel.id} className="page-card flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <h3 className="font-semibold text-[#17251f]">{hotel.name}</h3>
-                  <p className="mt-1 text-sm text-[#68736b]">{hotel.address}, {hotel.city} · {hotel.region}</p>
-                  <p className="mt-1 text-sm text-[#68736b]">{hotel.phone} · {hotel.email}</p>
-                  <p className="mt-1 text-xs text-[#68736b]">Soumis le {new Date(hotel.created_at).toLocaleDateString('fr-FR')}</p>
-                </div>
-                {hotel.status === 'pending' || hotel.status === 'rejected' ? (
-                  <div className="flex flex-wrap gap-2">
-                    <button type="button" disabled={busy} onClick={() => reviewHotel(hotel.id, true)} className="btn-primary">
-                      <Check aria-hidden="true" className="h-4 w-4" /> {hotel.status === 'pending' ? 'Approuver et publier' : 'Publier'}
-                    </button>
-                    {hotel.status === 'pending' && <button type="button" disabled={busy} onClick={() => reviewHotel(hotel.id, false)} className="btn-secondary">
-                      <X aria-hidden="true" className="h-4 w-4" /> Refuser
-                    </button>}
-                  </div>
-                ) : (
-                  <div className="flex flex-wrap items-center gap-3">
-                    <span className="rounded-full bg-[#eef4ef] px-3 py-1 text-xs font-semibold text-[#174c3a]">Publié</span>
-                    <button type="button" disabled={busy} onClick={() => reviewHotel(hotel.id, false)} className="btn-secondary min-h-10 px-3 py-2 text-sm">
-                      <X aria-hidden="true" className="h-4 w-4" /> Dépublier
-                    </button>
-                  </div>
-                )}
-              </article>
-            ))}
-            <SubscriptionManagement hotels={hotels} revision={revision} busy={busy} runAction={runAction} />
-          </section>
+                  <section className="page-card p-5 sm:p-6">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <h2 className="text-lg font-semibold">Actions à traiter</h2>
+                        <p className="mt-1 text-sm text-[#68736b]">Les éléments en attente demandent votre attention.</p>
+                      </div>
+                      <button type="button" className="text-sm font-semibold text-[#174c3a]" onClick={() => setActiveSection('partners')}>
+                        Voir les demandes
+                      </button>
+                    </div>
+                    <div className="mt-4 divide-y divide-[#eeece5]">
+                      {applications.filter(item => item.status === 'pending').slice(0, 4).map(application => (
+                        <div key={application.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
+                          <div>
+                            <p className="font-medium">{application.business_name}</p>
+                            <p className="text-sm text-[#68736b]">{application.city} · Soumise le {new Date(application.submitted_at).toLocaleDateString('fr-FR')}</p>
+                          </div>
+                          <button type="button" className="btn-secondary min-h-9 px-3 py-1.5 text-sm" onClick={() => setActiveSection('partners')}>Examiner</button>
+                        </div>
+                      ))}
+                      {reviewHotels.filter(item => item.status === 'pending').slice(0, 3).map(hotel => (
+                        <div key={hotel.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
+                          <div>
+                            <p className="font-medium">{hotel.name}</p>
+                            <p className="text-sm text-[#68736b]">{hotel.city} · Fiche à valider</p>
+                          </div>
+                          <button type="button" className="btn-secondary min-h-9 px-3 py-1.5 text-sm" onClick={() => setActiveSection('hotels')}>Examiner</button>
+                        </div>
+                      ))}
+                      {!applications.some(item => item.status === 'pending') && !reviewHotels.some(item => item.status === 'pending') && (
+                        <p className="py-4 text-sm text-[#68736b]">Tout est à jour : aucune demande ni fiche en attente.</p>
+                      )}
+                    </div>
+                  </section>
+                </>
+              )}
+              {activeSection === 'partners' && (
+                <section className="space-y-4">
+                  <DashboardSectionHeader title="Demandes partenaires" description="Vérifiez les coordonnées de l’entreprise avant d’accorder l’accès hôtelier." count={applications.filter(item => item.status === 'pending').length} />
+                  {applications.length === 0 ? (
+                    <div className="page-card p-6 text-sm text-[#68736b]">Aucune demande partenaire à traiter.</div>
+                  ) : applications.map(application => (
+                    <article key={application.id} className="page-card flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <h2 className="font-semibold text-[#17251f]">{application.business_name}</h2>
+                        <p className="mt-1 text-sm text-[#68736b]">{application.city} · {application.phone}</p>
+                        <p className="mt-1 text-sm text-[#68736b]">{applicantDetails[application.user_id]?.name || applicantDetails[application.user_id]?.email || application.user_id}</p>
+                        <p className="mt-1 text-xs text-[#68736b]">État : {application.status} · Soumise le {new Date(application.submitted_at).toLocaleDateString('fr-FR')}</p>
+                      </div>
+                      {application.status === 'pending' && (
+                        <div className="flex flex-wrap gap-2">
+                          <button type="button" disabled={busy} onClick={() => reviewApplication(application.id, true)} className="btn-primary"><Check aria-hidden="true" className="h-4 w-4" /> Approuver</button>
+                          <button type="button" disabled={busy} onClick={() => reviewApplication(application.id, false)} className="btn-secondary"><X aria-hidden="true" className="h-4 w-4" /> Refuser</button>
+                        </div>
+                      )}
+                    </article>
+                  ))}
+                </section>
+              )}
+              {activeSection === 'hotels' && (
+                <section className="space-y-4">
+                  <DashboardSectionHeader title="Établissements" description="Examinez les fiches avant leur publication sur le catalogue." count={reviewHotels.filter(item => item.status === 'pending').length} />
+                  {reviewHotels.length === 0 ? (
+                    <div className="page-card p-6 text-sm text-[#68736b]">Aucun établissement soumis pour le moment.</div>
+                  ) : reviewHotels.map(hotel => (
+                    <article key={hotel.id} className="page-card flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <h3 className="font-semibold text-[#17251f]">{hotel.name}</h3>
+                        <p className="mt-1 text-sm text-[#68736b]">{hotel.address}, {hotel.city} · {hotel.region}</p>
+                        <p className="mt-1 text-sm text-[#68736b]">{hotel.phone} · {hotel.email}</p>
+                        <p className="mt-1 text-xs text-[#68736b]">État : {hotel.status} · Soumis le {new Date(hotel.created_at).toLocaleDateString('fr-FR')}</p>
+                      </div>
+                      {hotel.status === 'pending' || hotel.status === 'rejected' ? (
+                        <div className="flex flex-wrap gap-2">
+                          <button type="button" disabled={busy} onClick={() => reviewHotel(hotel.id, true)} className="btn-primary"><Check aria-hidden="true" className="h-4 w-4" /> {hotel.status === 'pending' ? 'Approuver et publier' : 'Publier'}</button>
+                          {hotel.status === 'pending' && <button type="button" disabled={busy} onClick={() => reviewHotel(hotel.id, false)} className="btn-secondary"><X aria-hidden="true" className="h-4 w-4" /> Refuser</button>}
+                        </div>
+                      ) : (
+                        <div className="flex flex-wrap items-center gap-3">
+                          <span className="rounded-full bg-[#eef4ef] px-3 py-1 text-xs font-semibold text-[#174c3a]">Publié</span>
+                          <button type="button" disabled={busy} onClick={() => reviewHotel(hotel.id, false)} className="btn-secondary min-h-10 px-3 py-2 text-sm"><X aria-hidden="true" className="h-4 w-4" /> Dépublier</button>
+                        </div>
+                      )}
+                    </article>
+                  ))}
+                </section>
+              )}
+              {activeSection === 'subscriptions' && <SubscriptionManagement hotels={hotels} revision={revision} busy={busy} runAction={runAction} />}
+            </section>
+          </div>
         ) : user.role === 'client' ? (
           <section className="page-card max-w-2xl p-6 sm:p-8">
             {user.partnerApplicationStatus === 'pending' ? (
@@ -269,14 +328,95 @@ const Dashboard: React.FC = () => {
             )}
           </section>
         ) : (
-          <div className="space-y-6">
-            <HotelierWorkspace hotels={hotels} rooms={rooms} busy={busy} runAction={runAction} />
-            <SubscriptionManagement hotels={hotels} revision={revision} busy={busy} runAction={runAction} />
+          <div className="grid gap-6 lg:grid-cols-[240px_minmax(0,1fr)]">
+            <DashboardMenu items={dashboardItems} activeSection={activeSection} onSelect={setActiveSection} />
+            <section className="min-w-0 space-y-5">
+              {activeSection === 'overview' && (
+                <>
+                  <div className="grid gap-4 sm:grid-cols-3">
+                    <DashboardMetric label="Établissements" value={hotels.length} detail="Dans votre espace" icon={Building2} />
+                    <DashboardMetric label="Types de chambres" value={rooms.length} detail={`${rooms.filter(room => room.is_active).length} actifs`} icon={LayoutDashboard} />
+                    <DashboardMetric label="Fiches à valider" value={hotels.filter(hotel => hotel.status === 'pending').length} detail="En attente de vérification" icon={Clock3} />
+                  </div>
+                  <section className="page-card p-5 sm:p-6">
+                    <h2 className="text-lg font-semibold">Bienvenue dans votre espace hôtelier</h2>
+                    <p className="mt-2 max-w-2xl text-sm leading-6 text-[#68736b]">Utilisez le menu pour gérer les informations publiques, les photos et les chambres de vos établissements, puis consultez votre formule et vos paiements.</p>
+                    <div className="mt-5 flex flex-wrap gap-3">
+                      <button type="button" className="btn-primary" onClick={() => setActiveSection('hotels')}><Building2 aria-hidden="true" className="h-4 w-4" /> Gérer mes établissements</button>
+                      <button type="button" className="btn-secondary" onClick={() => setActiveSection('subscriptions')}><CreditCard aria-hidden="true" className="h-4 w-4" /> Voir les abonnements</button>
+                    </div>
+                  </section>
+                </>
+              )}
+              {activeSection === 'hotels' && <HotelierWorkspace hotels={hotels} rooms={rooms} busy={busy} runAction={runAction} />}
+              {activeSection === 'subscriptions' && <SubscriptionManagement hotels={hotels} revision={revision} busy={busy} runAction={runAction} />}
+            </section>
           </div>
         )}
       </div>
     </div>
   );
 };
+
+const DashboardMenu: React.FC<{
+  items: DashboardMenuItem[];
+  activeSection: DashboardSection;
+  onSelect: (section: DashboardSection) => void;
+}> = ({ items, activeSection, onSelect }) => (
+  <nav aria-label="Sections du tableau de bord" className="page-card h-fit p-2 lg:sticky lg:top-24">
+    <div className="flex gap-1 overflow-x-auto lg:grid">
+      {items.map(item => {
+        const Icon = item.icon;
+        const isActive = activeSection === item.id;
+        return (
+          <button
+            key={item.id}
+            type="button"
+            aria-current={isActive ? 'page' : undefined}
+            onClick={() => onSelect(item.id)}
+            className={`flex min-h-11 shrink-0 items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition-colors lg:w-full ${
+              isActive ? 'bg-[#174c3a] text-white' : 'text-[#59645d] hover:bg-[#f1f3ed] hover:text-[#174c3a]'
+            }`}
+          >
+            <Icon aria-hidden="true" className="h-4 w-4 shrink-0" />
+            <span>{item.label}</span>
+          </button>
+        );
+      })}
+    </div>
+  </nav>
+);
+
+const DashboardMetric: React.FC<{
+  label: string;
+  value: number;
+  detail: string;
+  icon: LucideIcon;
+}> = ({ label, value, detail, icon: Icon }) => (
+  <article className="page-card flex items-start gap-4 p-5">
+    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#eef4ef] text-[#174c3a]">
+      <Icon aria-hidden="true" className="h-5 w-5" />
+    </span>
+    <div className="min-w-0">
+      <p className="text-sm text-[#68736b]">{label}</p>
+      <p className="mt-1 text-2xl font-bold text-[#17251f]">{value}</p>
+      <p className="mt-1 text-xs text-[#68736b]">{detail}</p>
+    </div>
+  </article>
+);
+
+const DashboardSectionHeader: React.FC<{ title: string; description: string; count: number }> = ({
+  title,
+  description,
+  count,
+}) => (
+  <div className="page-card flex flex-wrap items-center justify-between gap-4 p-5">
+    <div>
+      <h2 className="text-lg font-semibold text-[#17251f]">{title}</h2>
+      <p className="mt-1 text-sm text-[#68736b]">{description}</p>
+    </div>
+    <span className="rounded-full bg-[#f1f3ed] px-3 py-1 text-sm font-semibold text-[#174c3a]">{count} en attente</span>
+  </div>
+);
 
 export default Dashboard;

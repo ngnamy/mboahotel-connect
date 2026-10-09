@@ -125,7 +125,7 @@ export const usePublicHotels = (hotelId?: string, checkIn?: string, checkOut?: s
             capacity: room.capacity,
             price: room.price_xaf,
             totalUnits: room.total_units,
-            availableUnits: validStay ? availabilityByRoom.get(room.id)?.available_units ?? 0 : null,
+            availableUnits: validStay ? availabilityByRoom.get(room.id)?.available_units ?? null : null,
             availabilityForDates: validStay,
             images: roomPhotosByRoom.get(room.id) ?? [],
           });
