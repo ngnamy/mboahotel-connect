@@ -1,12 +1,15 @@
-import React, { useState } from 'react';
-import { useLocation, useNavigate, Link } from 'react-router-dom';
-import { Calendar, Users, CreditCard, ArrowLeft, MapPin, Star } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { useLocation, Link } from 'react-router-dom';
+import { ArrowLeft, Calendar, Check, MapPin, Star } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+import { requireSupabase } from '../lib/supabase';
 
 interface BookingItem {
   id: string;
   name: string;
   quantity: number;
   price: number;
+  capacity: number;
 }
 
 interface BookingDetails {
@@ -18,271 +21,238 @@ interface BookingDetails {
   checkOut: string;
 }
 
+const errorMessage = (error: unknown) => {
+  if (error instanceof Error) return error.message;
+  if (typeof error !== 'object' || error === null) return String(error);
+  const details = error as { message?: unknown; details?: unknown; hint?: unknown };
+  return [details.message, details.details, details.hint]
+    .filter((value): value is string => typeof value === 'string' && value.length > 0)
+    .join(' — ') || 'Une erreur inattendue est survenue.';
+};
+
 const BookingConfirmation: React.FC = () => {
   const location = useLocation();
-  const navigate = useNavigate();
-  const bookingDetails: BookingDetails = location.state?.bookingDetails;
+  const { user, updateProfile } = useAuth();
+  const bookingDetails = (location.state as { bookingDetails?: BookingDetails } | null)?.bookingDetails;
+  const [firstName, setFirstName] = useState(user?.firstName ?? '');
+  const [lastName, setLastName] = useState(user?.lastName ?? '');
+  const [phone, setPhone] = useState(user?.phone ?? '');
+  const [guestCount, setGuestCount] = useState(1);
+  const [checkIn, setCheckIn] = useState(bookingDetails?.checkIn ?? '');
+  const [checkOut, setCheckOut] = useState(bookingDetails?.checkOut ?? '');
+  const [specialRequests, setSpecialRequests] = useState('');
+  const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
 
-  const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    phone: '',
-    checkIn: bookingDetails?.checkIn || '',
-    checkOut: bookingDetails?.checkOut || '',
-    specialRequests: ''
-  });
+  useEffect(() => {
+    if (!user) return;
+    setFirstName(user.firstName);
+    setLastName(user.lastName);
+    setPhone(user.phone ?? '');
+  }, [user?.id, user?.firstName, user?.lastName, user?.phone]);
 
-  const [availabilityMessage, setAvailabilityMessage] = useState('');
+  const returnState = { from: { pathname: location.pathname, state: location.state } };
 
   if (!bookingDetails) {
     return (
       <div className="page-shell flex items-center justify-center">
         <div className="page-card mx-4 max-w-md p-6 text-center">
-          <div className="text-red-600 mb-4">
-            <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.314 16.5c-.77.833.192 2.5 1.732 2.5z" />
-            </svg>
-          </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Informations manquantes</h2>
-          <p className="text-gray-600 mb-6">Aucune information de réservation trouvée. Veuillez recommencer votre sélection.</p>
-          <Link to="/search" className="btn-primary">
-            Retour à la recherche
-          </Link>
+          <h1 className="text-2xl font-bold text-gray-900">Sélection manquante</h1>
+          <p className="mt-3 text-gray-600">Choisissez vos dates et vos chambres avant d’envoyer une demande.</p>
+          <Link to="/search" className="btn-primary mt-6">Rechercher un établissement</Link>
         </div>
       </div>
     );
   }
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+  if (!user) {
+    return (
+      <div className="page-shell flex items-center justify-center">
+        <div className="page-card mx-4 max-w-lg p-6 text-center sm:p-8">
+          <h1 className="text-2xl font-bold text-gray-900">Connectez-vous pour réserver</h1>
+          <p className="mt-3 text-sm leading-6 text-gray-600">
+            Votre sélection est prête. Connectez-vous à votre compte client pour envoyer la demande à {bookingDetails.hotelName}.
+          </p>
+          <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
+            <Link to="/login" state={returnState} className="btn-primary">Se connecter</Link>
+            <Link to="/register" state={returnState} className="btn-secondary">Créer un compte</Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const nights = checkIn && checkOut
+    ? Math.max(0, Math.round((Date.parse(`${checkOut}T00:00:00Z`) - Date.parse(`${checkIn}T00:00:00Z`)) / 86400000))
+    : 0;
+  const maximumGuests = bookingDetails.selectedRooms.reduce(
+    (capacity, room) => capacity + room.quantity * room.capacity,
+    0,
+  );
+  const totalPrice = bookingDetails.selectedRooms.reduce(
+    (total, room) => total + room.price * room.quantity * nights,
+    0,
+  );
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setIsSubmitting(true);
+    setError('');
+
+    try {
+      if (user.role !== 'client') throw new Error('Utilisez un compte client pour effectuer une réservation.');
+      if (!firstName.trim() || !lastName.trim()) throw new Error('Renseignez votre prénom et votre nom.');
+      if (!phone.trim()) throw new Error('Renseignez votre numéro de téléphone.');
+      if (checkIn < new Date().toISOString().slice(0, 10) || !nights) {
+        throw new Error('Choisissez des dates de séjour valides.');
+      }
+      if (specialRequests.length > 1000) throw new Error('Les demandes spéciales ne peuvent pas dépasser 1 000 caractères.');
+
+      await updateProfile({
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        phone: phone.trim(),
+      });
+
+      const { error: reservationError } = await requireSupabase().rpc('create_online_reservations', {
+        p_hotel_id: bookingDetails.hotelId,
+        p_room_selections: bookingDetails.selectedRooms.map(room => ({
+          room_id: room.id,
+          room_count: room.quantity,
+        })),
+        p_check_in: checkIn,
+        p_check_out: checkOut,
+        p_guest_count: guestCount,
+        p_special_requests: specialRequests.trim(),
+      });
+      if (reservationError) throw reservationError;
+      setSubmitted(true);
+    } catch (submitError) {
+      console.error('Échec de la demande de réservation:', submitError);
+      setError(errorMessage(submitError));
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setAvailabilityMessage('La réservation ne peut pas être transmise pour le moment. Aucune réservation n’a été créée.');
-  };
-
-  const calculateNights = () => {
-    const checkInDate = new Date(formData.checkIn);
-    const checkOutDate = new Date(formData.checkOut);
-    const diffTime = Math.abs(checkOutDate.getTime() - checkInDate.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays;
-  };
-
-  const nights = calculateNights();
-  const totalWithNights = bookingDetails.totalPrice * nights;
+  if (submitted) {
+    return (
+      <div className="page-shell flex items-center justify-center">
+        <div className="page-card mx-4 max-w-xl p-6 text-center sm:p-9">
+          <span className="mx-auto inline-flex h-14 w-14 items-center justify-center rounded-full bg-green-100 text-green-700">
+            <Check aria-hidden="true" className="h-7 w-7" />
+          </span>
+          <h1 className="mt-5 text-2xl font-bold text-gray-900">Demande envoyée</h1>
+          <p className="mt-3 text-sm leading-6 text-gray-600">
+            Votre demande pour {bookingDetails.hotelName} est enregistrée en attente de confirmation par l’établissement.
+            Aucun paiement n’a été effectué et les chambres ne sont pas bloquées avant confirmation.
+          </p>
+          <Link to="/reservations" className="btn-primary mt-6">Suivre mes réservations</Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="page-shell">
       <div className="page-container max-w-5xl">
-        <p role="status" className="mb-6 rounded-xl border border-[#e4d0a2] bg-[#f8f3e9] p-4 text-sm leading-6 text-[#5c4324]">
-          Cette page est un aperçu : les réservations ne sont pas enregistrées et aucun e-mail de confirmation n’est envoyé.
-        </p>
-        {/* En-tête */}
         <div className="mb-8">
-          <Link 
-            to={`/hotel/${bookingDetails.hotelId}`}
-            className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-4"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Retour aux détails de l'hôtel
+          <Link to={`/hotel/${bookingDetails.hotelId}`} className="mb-4 inline-flex items-center text-[#174c3a] hover:underline">
+            <ArrowLeft aria-hidden="true" className="mr-2 h-4 w-4" /> Retour à l’établissement
           </Link>
-          <h1 className="text-3xl font-bold text-gray-900">Finaliser votre réservation</h1>
-          <p className="text-gray-600 mt-2">Complétez vos informations pour confirmer votre séjour</p>
+          <h1 className="page-title">Demande de réservation</h1>
+          <p className="page-description text-base">L’établissement confirmera la disponibilité avant que votre séjour soit réservé.</p>
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-8">
-          {/* Formulaire */}
-          <div className="lg:col-span-2">
-            <form onSubmit={handleSubmit} className="page-card p-5 sm:p-6">
-              {availabilityMessage && <p role="alert" className="mb-5 rounded-xl border border-[#e4d0a2] bg-[#f8f3e9] p-4 text-sm text-[#5c4324]">{availabilityMessage}</p>}
-              <h2 className="text-xl font-bold text-gray-900 mb-6">Informations personnelles</h2>
-              
-              <div className="grid md:grid-cols-2 gap-4 mb-6">
-                <div>
-                  <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-2">
-                    Prénom *
-                  </label>
-                  <input
-                    type="text"
-                    id="firstName"
-                    name="firstName"
-                    value={formData.firstName}
-                    onChange={handleInputChange}
-                    required
-                    className="input"
-                    placeholder="Votre prénom"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-2">
-                    Nom *
-                  </label>
-                  <input
-                    type="text"
-                    id="lastName"
-                    name="lastName"
-                    value={formData.lastName}
-                    onChange={handleInputChange}
-                    required
-                    className="input"
-                    placeholder="Votre nom"
-                  />
-                </div>
-              </div>
-
-              <div className="grid md:grid-cols-2 gap-4 mb-6">
-                <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                    Email *
-                  </label>
-                  <input
-                    type="email"
-                    id="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    required
-                    className="input"
-                    placeholder="votre@email.com"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
-                    Téléphone *
-                  </label>
-                  <input
-                    type="tel"
-                    id="phone"
-                    name="phone"
-                    value={formData.phone}
-                    onChange={handleInputChange}
-                    required
-                    className="input"
-                    placeholder="+237 6XX XX XX XX"
-                  />
-                </div>
-              </div>
-
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Dates de séjour</h3>
-              <div className="grid md:grid-cols-2 gap-4 mb-6">
-                <div>
-                  <label htmlFor="checkIn" className="block text-sm font-medium text-gray-700 mb-2">
-                    Arrivée *
-                  </label>
-                  <div className="relative">
-                    <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                    <input
-                      type="date"
-                      id="checkIn"
-                      name="checkIn"
-                      value={formData.checkIn}
-                      onChange={handleInputChange}
-                      required
-                      className="input pl-10"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label htmlFor="checkOut" className="block text-sm font-medium text-gray-700 mb-2">
-                    Départ *
-                  </label>
-                  <div className="relative">
-                    <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                    <input
-                      type="date"
-                      id="checkOut"
-                      name="checkOut"
-                      value={formData.checkOut}
-                      onChange={handleInputChange}
-                      required
-                      className="input pl-10"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="mb-6">
-                <label htmlFor="specialRequests" className="block text-sm font-medium text-gray-700 mb-2">
-                  Demandes spéciales (optionnel)
-                </label>
-                <textarea
-                  id="specialRequests"
-                  name="specialRequests"
-                  value={formData.specialRequests}
-                  onChange={handleInputChange}
-                  rows={3}
-                  className="input resize-none"
-                  placeholder="Lit bébé, étage élevé, vue mer, etc."
-                />
-              </div>
-
-              <button type="submit" disabled className="btn-primary w-full cursor-not-allowed py-3 text-lg opacity-60">
-                Réservation indisponible
-              </button>
-            </form>
-          </div>
-
-          {/* Récapitulatif */}
-          <div className="lg:col-span-1">
-            <div className="page-card p-5 sm:sticky sm:top-24 sm:p-6">
-              <h3 className="text-xl font-bold text-gray-900 mb-4">Récapitulatif</h3>
-              
-              <div className="mb-4 pb-4 border-b">
-                <h4 className="font-semibold text-gray-900 mb-2">{bookingDetails.hotelName}</h4>
-                <div className="flex items-center text-gray-600 text-sm mb-2">
-                  <MapPin className="w-4 h-4 mr-1" />
-                  <span>Yaoundé, Cameroun</span>
-                </div>
-                <div className="flex items-center text-gray-600 text-sm">
-                  <Star className="w-4 h-4 mr-1 text-yellow-400 fill-current" />
-                  <span>4.5 étoiles</span>
-                </div>
-              </div>
-
-              <div className="mb-4 pb-4 border-b">
-                <h5 className="font-medium text-gray-900 mb-2">Chambres sélectionnées</h5>
-                {bookingDetails.selectedRooms.map(room => (
-                  <div key={room.id} className="flex justify-between text-sm mb-2">
-                    <span>{room.quantity}x {room.name}</span>
-                    <span>{(room.quantity * room.price).toLocaleString()} XAF</span>
-                  </div>
-                ))}
-              </div>
-
-              <div className="mb-4 pb-4 border-b">
-                <div className="flex justify-between text-sm mb-2">
-                  <span>Durée du séjour</span>
-                  <span>{nights} nuit{nights > 1 ? 's' : ''}</span>
-                </div>
-                <div className="flex justify-between text-sm mb-2">
-                  <span>Prix par nuit</span>
-                  <span>{bookingDetails.totalPrice.toLocaleString()} XAF</span>
-                </div>
-              </div>
-
-              <div className="flex justify-between items-center text-lg font-bold">
-                <span>Total</span>
-                <span className="text-blue-600">{totalWithNights.toLocaleString()} XAF</span>
-              </div>
-
-              <div className="mt-4 rounded-xl border border-[#e4d0a2] bg-[#f8f3e9] p-3">
-                <div className="flex items-center text-[#5c4324] text-sm">
-                  <CreditCard className="w-4 h-4 mr-2" />
-                  <span>Aucun paiement traité</span>
-                </div>
-                <p className="mt-1 text-xs text-[#76552b]">
-                  La réservation n’est pas encore connectée à un service de paiement.
-                </p>
-              </div>
+        <div className="grid gap-8 lg:grid-cols-3">
+          <form onSubmit={handleSubmit} className="page-card space-y-5 p-5 sm:p-6 lg:col-span-2">
+            {error && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">{error}</p>}
+            <div className="rounded-xl border border-[#e4d0a2] bg-[#f8f3e9] p-4 text-sm leading-6 text-[#5c4324]">
+              La demande sera envoyée sans paiement. Elle ne devient confirmée qu’après validation par l’établissement.
             </div>
-          </div>
+
+            <section>
+              <h2 className="text-lg font-semibold text-gray-900">Coordonnées du client</h2>
+              <p className="mt-1 text-sm text-gray-600">{user.email}</p>
+              <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                <label className="grid gap-2 text-sm font-medium text-gray-700">
+                  Prénom *
+                  <input required autoComplete="given-name" value={firstName} onChange={event => setFirstName(event.target.value)} className="input" />
+                </label>
+                <label className="grid gap-2 text-sm font-medium text-gray-700">
+                  Nom *
+                  <input required autoComplete="family-name" value={lastName} onChange={event => setLastName(event.target.value)} className="input" />
+                </label>
+              </div>
+              <label htmlFor="phone" className="mt-4 block text-sm font-medium text-gray-700">Téléphone de contact *</label>
+              <input
+                id="phone"
+                type="tel"
+                required
+                autoComplete="tel"
+                value={phone}
+                onChange={event => setPhone(event.target.value)}
+                className="input mt-2"
+                placeholder="+237 6XX XX XX XX"
+              />
+            </section>
+
+            <section>
+              <h2 className="text-lg font-semibold text-gray-900">Détails du séjour</h2>
+              <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                <label className="grid gap-2 text-sm font-medium text-gray-700">
+                  Arrivée *
+                  <input type="date" required min={new Date().toISOString().slice(0, 10)} value={checkIn} onChange={event => setCheckIn(event.target.value)} className="input" />
+                </label>
+                <label className="grid gap-2 text-sm font-medium text-gray-700">
+                  Départ *
+                  <input type="date" required min={checkIn || new Date().toISOString().slice(0, 10)} value={checkOut} onChange={event => setCheckOut(event.target.value)} className="input" />
+                </label>
+                <label className="grid gap-2 text-sm font-medium text-gray-700 sm:col-span-2">
+                  Nombre de voyageurs *
+                  <input type="number" min={1} max={maximumGuests || undefined} required value={guestCount} onChange={event => setGuestCount(Number(event.target.value))} className="input" />
+                  {maximumGuests > 0 && <span className="text-xs font-normal text-gray-500">Capacité maximale des chambres sélectionnées : {maximumGuests} voyageurs.</span>}
+                </label>
+              </div>
+            </section>
+
+            <label className="grid gap-2 text-sm font-medium text-gray-700">
+              Demandes spéciales (facultatif)
+              <textarea
+                maxLength={1000}
+                rows={3}
+                value={specialRequests}
+                onChange={event => setSpecialRequests(event.target.value)}
+                className="input resize-y"
+                placeholder="Précisions utiles à l’établissement"
+              />
+            </label>
+            <button type="submit" disabled={isSubmitting} className="btn-primary w-full py-3 text-base">
+              {isSubmitting ? 'Envoi de la demande…' : 'Envoyer la demande de réservation'}
+            </button>
+          </form>
+
+          <aside className="page-card h-fit p-5 sm:p-6 lg:sticky lg:top-24">
+            <h2 className="text-xl font-bold text-gray-900">Récapitulatif</h2>
+            <h3 className="mt-4 font-semibold text-gray-900">{bookingDetails.hotelName}</h3>
+            <p className="mt-2 flex items-center gap-2 text-sm text-gray-600"><MapPin aria-hidden="true" className="h-4 w-4" />Établissement sélectionné</p>
+            <p className="mt-2 flex items-center gap-2 text-sm text-gray-600"><Star aria-hidden="true" className="h-4 w-4 text-amber-500" />Prix et disponibilité à confirmer</p>
+            <div className="my-4 space-y-2 border-y py-4">
+              {bookingDetails.selectedRooms.map(room => (
+                <div key={room.id} className="flex justify-between gap-3 text-sm">
+                  <span>{room.quantity} × {room.name}</span>
+                  <span>{(room.quantity * room.price).toLocaleString()} XAF/nuit</span>
+                </div>
+              ))}
+              <p className="flex items-center gap-2 pt-2 text-sm text-gray-600"><Calendar aria-hidden="true" className="h-4 w-4" />{nights} nuit{nights > 1 ? 's' : ''}</p>
+            </div>
+            <p className="flex justify-between gap-3 text-base font-bold">
+              <span>Total indicatif</span>
+              <span>{totalPrice.toLocaleString()} XAF</span>
+            </p>
+            <p className="mt-2 text-xs leading-5 text-gray-500">Le montant final sera confirmé par l’établissement. Aucun paiement en ligne n’est activé pour le moment.</p>
+          </aside>
         </div>
       </div>
     </div>

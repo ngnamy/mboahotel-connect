@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowRight, Lock, Mail, User } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 const Register: React.FC = () => {
   const { register } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const role = searchParams.get('role') === 'hotelier' ? 'hotelier' : 'client';
   const [fullName, setFullName] = useState('');
@@ -45,7 +46,10 @@ const Register: React.FC = () => {
         setSuccessMessage('Votre compte a été créé. Consultez votre boîte e-mail et confirmez votre adresse avant de vous connecter.');
         return;
       }
-      navigate(role === 'hotelier' ? '/dashboard' : '/reservations');
+      const requestedLocation = (location.state as { from?: { pathname?: string; state?: unknown } } | null)?.from;
+      navigate(requestedLocation?.pathname ?? (role === 'hotelier' ? '/dashboard' : '/reservations'), {
+        state: requestedLocation?.state,
+      });
     } catch (registrationError) {
       setError(registrationError instanceof Error ? registrationError.message : 'La création du compte a échoué. Réessayez.');
     } finally {

@@ -20,8 +20,11 @@ const Login: React.FC = () => {
     setError('');
     try {
       const user = await login(email, password);
-      const requestedPath = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname;
-      navigate(requestedPath ?? (user.role === 'admin' || user.role === 'hotelier' || user.partnerApplicationStatus ? '/dashboard' : '/reservations'));
+      const requestedLocation = (location.state as { from?: { pathname?: string; state?: unknown } } | null)?.from;
+      const fallbackPath = user.role === 'admin' || user.role === 'hotelier' || user.partnerApplicationStatus
+        ? '/dashboard'
+        : '/reservations';
+      navigate(requestedLocation?.pathname ?? fallbackPath, { state: requestedLocation?.state });
     } catch (loginError) {
       setError(loginError instanceof Error ? loginError.message : 'La connexion a échoué. Vérifiez vos identifiants et réessayez.');
     } finally {
@@ -81,7 +84,7 @@ const Login: React.FC = () => {
                   </button>
                 </form>
                 <p className="mt-6 text-center text-sm text-[#68736b]">
-                  Pas encore de compte ? <Link to="/register" className="font-semibold text-[#174c3a] hover:underline">Créer un compte</Link>
+                  Pas encore de compte ? <Link to="/register" state={location.state} className="font-semibold text-[#174c3a] hover:underline">Créer un compte</Link>
                 </p>
               </div>
             </section>

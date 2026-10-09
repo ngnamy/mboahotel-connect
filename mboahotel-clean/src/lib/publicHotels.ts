@@ -29,6 +29,7 @@ export interface PublicHotel {
   stars: number;
   priorityListing: boolean;
   featuredListing: boolean;
+  reservationsEnabled: boolean;
   checkInTime: string | null;
   checkOutTime: string | null;
   cancellationPolicy: string;
@@ -163,6 +164,7 @@ export const usePublicHotels = (hotelId?: string, checkIn?: string, checkOut?: s
             stars: hotel.stars ?? 0,
             priorityListing: entitlements?.priority_listing ?? false,
             featuredListing: entitlements?.featured_listing ?? false,
+            reservationsEnabled: Boolean(entitlements),
             checkInTime: hotel.check_in_time,
             checkOutTime: hotel.check_out_time,
             cancellationPolicy: hotel.cancellation_policy,

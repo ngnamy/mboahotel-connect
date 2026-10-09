@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { useParams, Link, useSearchParams } from 'react-router-dom';
+import { useParams, Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { useCart } from '../contexts/CartContext';
+import { useAuth } from '../contexts/AuthContext';
 import { 
   Star, 
   MapPin, 
@@ -60,6 +61,7 @@ interface Hotel {
   amenities: string[];
   stars: number;
   description: string;
+  reservationsEnabled?: boolean;
   phone?: string;
   email?: string;
   rooms: Room[];
@@ -155,6 +157,8 @@ const getRatingText = (rating: number) => {
 const HotelDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const { addItem } = useCart();
   const [checkIn, setCheckIn] = useState(() => {
     if (searchParams.get('checkIn')) return searchParams.get('checkIn')!;
@@ -192,6 +196,7 @@ const HotelDetails: React.FC = () => {
     ),
     amenities: publishedHotel.amenities,
     stars: publishedHotel.stars,
+    reservationsEnabled: publishedHotel.reservationsEnabled,
     description: publishedHotel.description || 'La description détaillée de cet établissement sera bientôt disponible. Contactez directement l’hôtel pour en savoir plus.',
     phone: publishedHotel.phone,
     email: publishedHotel.email,
@@ -375,6 +380,45 @@ const HotelDetails: React.FC = () => {
     setFeedback(`${selectedRoomCount} chambre(s) ajoutée(s) au panier de démonstration. Cela ne réserve pas de séjour.`);
   };
 
+  const handleRequestReservation = () => {
+    if (!hotel || !hasValidStayDates || bookingSummary.items.length === 0) {
+      setFeedback('Choisissez des dates valides et au moins une chambre disponible.');
+      return;
+    }
+    if (isLiveListing && !publishedHotel?.reservationsEnabled) {
+      setFeedback('Les réservations en ligne sont suspendues tant que l’abonnement de l’établissement n’est pas actif.');
+      return;
+    }
+    if (user && user.role !== 'client') {
+      setFeedback('Connectez-vous avec un compte client pour envoyer une demande de réservation.');
+      return;
+    }
+
+    const bookingDetails = {
+      hotelId: hotel.id,
+      hotelName: hotel.name,
+      selectedRooms: bookingSummary.items.map(item => {
+        const room = hotel.rooms.find(candidate => candidate.id === item.id);
+        return {
+          id: item.id,
+          name: item.name,
+          quantity: item.quantity,
+          price: item.price,
+          capacity: room?.capacity ?? 1,
+        };
+      }),
+      totalPrice: bookingSummary.items.reduce((total, item) => total + item.price * item.quantity, 0),
+      checkIn,
+      checkOut,
+    };
+    const path = `/hotel/${hotel.id}/booking`;
+    if (!user) {
+      navigate('/login', { state: { from: { pathname: path, state: { bookingDetails } } } });
+      return;
+    }
+    navigate(path, { state: { bookingDetails } });
+  };
+
   const handleReviewSubmit = (rating: number, comment: string) => {
     const newReview: Review = {
       id: `review-${Date.now()}`,
@@ -424,7 +468,7 @@ const HotelDetails: React.FC = () => {
       <div className="page-container py-8">
         <p role="note" className="mb-6 rounded-xl border border-[#e4d0a2] bg-[#f8f3e9] p-4 text-sm leading-6 text-[#5c4324]">
           {isLiveListing
-            ? 'Établissement partenaire publié. La disponibilité est calculée pour les dates choisies à partir des réservations confirmées ; contactez l’établissement pour confirmer votre séjour. La sélection ne constitue pas une réservation.'
+            ? 'Établissement partenaire publié. La disponibilité est calculée pour les dates choisies à partir des réservations confirmées. Vous pouvez envoyer une demande en ligne ; elle reste en attente et ne bloque pas les chambres avant confirmation.'
             : 'Fiche de démonstration : établissement, tarifs, avis et disponibilités à confirmer directement auprès de l’hôtel.'}
         </p>
         {feedback && <p role="status" className="mb-6 rounded-xl border border-[#bfd4c4] bg-[#eef4ef] p-4 text-sm leading-6 text-[#103b2d]">{feedback}</p>}
@@ -611,7 +655,7 @@ const HotelDetails: React.FC = () => {
           {isLiveListing ? (
           <div className="lg:col-span-1">
             <div className="page-card p-5 sm:sticky sm:top-24 sm:p-6">
-              <h3 className="text-xl font-bold text-gray-900 mb-3">Contacter l’établissement</h3>
+              <h3 className="text-xl font-bold text-gray-900 mb-3">Réserver en ligne</h3>
               <div className="mb-5">
                 <div className="grid grid-cols-2 gap-3">
                   <label className="grid gap-1 text-sm font-medium text-gray-700">
@@ -639,7 +683,7 @@ const HotelDetails: React.FC = () => {
               </div>
               {bookingSummary.items.length > 0 && (
                 <div className="mb-5 space-y-2 border-y py-4">
-                  <h4 className="text-sm font-semibold text-gray-900">Votre sélection indicative</h4>
+                  <h4 className="text-sm font-semibold text-gray-900">Votre sélection</h4>
                   {bookingSummary.items.map(item => (
                     <div key={item.id} className="flex justify-between gap-3 text-sm">
                       <span>{item.quantity} × {item.name}</span>
@@ -649,9 +693,18 @@ const HotelDetails: React.FC = () => {
                   <p className="text-right text-sm font-bold">Estimation : {bookingSummary.total.toLocaleString()} XAF</p>
                 </div>
               )}
-              <p className="mb-5 text-sm leading-6 text-gray-600">La réservation en ligne n’est pas encore disponible. Contactez directement l’établissement pour confirmer le tarif et le séjour. La sélection des chambres ne bloque pas le stock.</p>
+              <p className="mb-5 text-sm leading-6 text-gray-600">Envoyez une demande de réservation sans paiement. L’établissement vérifiera la disponibilité et devra la confirmer ; les chambres ne sont pas bloquées avant cette confirmation.</p>
+              {!publishedHotel?.reservationsEnabled && <p role="status" className="mb-4 rounded-xl bg-amber-50 p-3 text-sm leading-5 text-amber-900">Les réservations en ligne sont suspendues : l’abonnement de cet établissement n’est pas actif.</p>}
               <div className="grid gap-3">
-                {hotel.phone && <a href={`tel:${hotel.phone}`} className="btn-primary w-full">{hotel.phone}</a>}
+                <button
+                  type="button"
+                  onClick={handleRequestReservation}
+                  disabled={!bookingSummary.items.length || !hasValidStayDates || isLoading || !publishedHotel?.reservationsEnabled || Boolean(user && user.role !== 'client')}
+                  className="btn-primary w-full disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {user?.role === 'client' ? 'Envoyer une demande' : user ? 'Compte client requis' : 'Se connecter pour réserver'}
+                </button>
+                {hotel.phone && <a href={`tel:${hotel.phone}`} className="btn-secondary w-full">{hotel.phone}</a>}
                 {hotel.email && <a href={`mailto:${hotel.email}`} className="btn-secondary w-full break-all">{hotel.email}</a>}
               </div>
             </div>

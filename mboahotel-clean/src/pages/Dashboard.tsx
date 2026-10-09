@@ -1,6 +1,6 @@
 import React, { FormEvent, useCallback, useEffect, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { BadgeCheck, Building2, Check, Clock3, CreditCard, LayoutDashboard, Plus, Users, X } from 'lucide-react';
+import { BadgeCheck, Building2, CalendarDays, Check, Clock3, CreditCard, LayoutDashboard, Mail, Phone, Plus, Users, X } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import PageIntro from '../components/PageIntro';
 import { useAuth } from '../contexts/AuthContext';
@@ -12,7 +12,8 @@ import SubscriptionManagement from './SubscriptionManagement';
 type Application = Database['public']['Tables']['partner_applications']['Row'];
 type Hotel = Database['public']['Tables']['hotels']['Row'];
 type Room = Database['public']['Tables']['hotel_rooms']['Row'];
-type DashboardSection = 'overview' | 'partners' | 'hotels' | 'subscriptions';
+type Reservation = Database['public']['Tables']['reservations']['Row'];
+type DashboardSection = 'overview' | 'partners' | 'hotels' | 'reservations' | 'subscriptions';
 type DashboardMenuItem = { id: DashboardSection; label: string; icon: LucideIcon };
 
 const errorMessage = (error: unknown) => {
@@ -33,6 +34,7 @@ const Dashboard: React.FC = () => {
   const [reviewHotels, setReviewHotels] = useState<Hotel[]>([]);
   const [hotels, setHotels] = useState<Hotel[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
+  const [reservations, setReservations] = useState<Reservation[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -87,15 +89,26 @@ const Dashboard: React.FC = () => {
         const ownedHotels = data ?? [];
         setHotels(ownedHotels);
         if (ownedHotels.length) {
-          const { data: roomData, error: roomsError } = await client
-            .from('hotel_rooms')
-            .select('*')
-            .in('hotel_id', ownedHotels.map(hotel => hotel.id))
-            .order('created_at', { ascending: false });
+          const [{ data: roomData, error: roomsError }, { data: reservationData, error: reservationsError }] = await Promise.all([
+            client
+              .from('hotel_rooms')
+              .select('*')
+              .in('hotel_id', ownedHotels.map(hotel => hotel.id))
+              .order('created_at', { ascending: false }),
+            client
+              .from('reservations')
+              .select('*')
+              .in('hotel_id', ownedHotels.map(hotel => hotel.id))
+              .order('created_at', { ascending: false })
+              .limit(100),
+          ]);
           if (roomsError) throw roomsError;
+          if (reservationsError) throw reservationsError;
           setRooms(roomData ?? []);
+          setReservations(reservationData ?? []);
         } else {
           setRooms([]);
+          setReservations([]);
         }
       }
     } catch (loadError) {
@@ -160,6 +173,16 @@ const Dashboard: React.FC = () => {
     }, approve ? 'L’établissement est maintenant publié.' : 'L’établissement a été refusé et ne sera pas visible publiquement.');
   };
 
+  const reviewReservation = (reservationId: string, action: 'confirm' | 'reject') => {
+    void runAction(async () => {
+      const { error: rpcError } = await requireSupabase().rpc('review_hotel_reservation', {
+        p_reservation_id: reservationId,
+        p_action: action,
+      });
+      if (rpcError) throw rpcError;
+    }, action === 'confirm' ? 'La réservation a été confirmée.' : 'La demande de réservation a été refusée.');
+  };
+
   if (!user) return null;
   const dashboardItems = user.role === 'admin'
     ? [
@@ -171,6 +194,7 @@ const Dashboard: React.FC = () => {
     : [
         { id: 'overview' as const, label: 'Vue d’ensemble', icon: LayoutDashboard },
         { id: 'hotels' as const, label: 'Mes établissements', icon: Building2 },
+        { id: 'reservations' as const, label: 'Réservations', icon: CalendarDays },
         { id: 'subscriptions' as const, label: 'Abonnements', icon: CreditCard },
       ];
 
@@ -333,22 +357,69 @@ const Dashboard: React.FC = () => {
             <section className="min-w-0 space-y-5">
               {activeSection === 'overview' && (
                 <>
-                  <div className="grid gap-4 sm:grid-cols-3">
+                  <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                     <DashboardMetric label="Établissements" value={hotels.length} detail="Dans votre espace" icon={Building2} />
                     <DashboardMetric label="Types de chambres" value={rooms.length} detail={`${rooms.filter(room => room.is_active).length} actifs`} icon={LayoutDashboard} />
                     <DashboardMetric label="Fiches à valider" value={hotels.filter(hotel => hotel.status === 'pending').length} detail="En attente de vérification" icon={Clock3} />
+                    <DashboardMetric label="Demandes à traiter" value={reservations.filter(reservation => reservation.status === 'pending').length} detail="Réservations en attente" icon={CalendarDays} />
                   </div>
                   <section className="page-card p-5 sm:p-6">
                     <h2 className="text-lg font-semibold">Bienvenue dans votre espace hôtelier</h2>
-                    <p className="mt-2 max-w-2xl text-sm leading-6 text-[#68736b]">Utilisez le menu pour gérer les informations publiques, les photos et les chambres de vos établissements, puis consultez votre formule et vos paiements.</p>
+                    <p className="mt-2 max-w-2xl text-sm leading-6 text-[#68736b]">Utilisez le menu pour gérer vos établissements, traiter les demandes de réservation, consulter les chambres et suivre votre formule.</p>
                     <div className="mt-5 flex flex-wrap gap-3">
                       <button type="button" className="btn-primary" onClick={() => setActiveSection('hotels')}><Building2 aria-hidden="true" className="h-4 w-4" /> Gérer mes établissements</button>
+                      <button type="button" className="btn-secondary" onClick={() => setActiveSection('reservations')}><CalendarDays aria-hidden="true" className="h-4 w-4" /> Voir les réservations</button>
                       <button type="button" className="btn-secondary" onClick={() => setActiveSection('subscriptions')}><CreditCard aria-hidden="true" className="h-4 w-4" /> Voir les abonnements</button>
                     </div>
                   </section>
                 </>
               )}
               {activeSection === 'hotels' && <HotelierWorkspace hotels={hotels} rooms={rooms} busy={busy} runAction={runAction} />}
+              {activeSection === 'reservations' && (
+                <section className="space-y-4">
+                  <DashboardSectionHeader
+                    title="Demandes de réservation"
+                    description="Examinez les séjours demandés et confirmez uniquement après vérification de la disponibilité."
+                    count={reservations.filter(reservation => reservation.status === 'pending').length}
+                  />
+                  {reservations.length === 0 ? (
+                    <div className="page-card p-6 text-sm text-[#68736b]">Aucune demande de réservation reçue pour le moment.</div>
+                  ) : reservations.map(reservation => {
+                    const hotelName = hotels.find(hotel => hotel.id === reservation.hotel_id)?.name ?? 'Établissement';
+                    const roomName = rooms.find(room => room.id === reservation.room_id)?.name ?? 'Chambre';
+                    const statusLabel = reservation.status === 'confirmed' ? 'Confirmée'
+                      : reservation.status === 'cancelled' ? 'Refusée'
+                        : reservation.status === 'completed' ? 'Terminée' : 'En attente';
+                    return (
+                      <article key={reservation.id} className="page-card space-y-4 p-5 sm:p-6">
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div>
+                            <h3 className="font-semibold text-[#17251f]">{hotelName} · {roomName}</h3>
+                            <p className="mt-1 text-sm text-[#68736b]">{reservation.room_count} chambre(s) · {reservation.guest_count} voyageur(s)</p>
+                          </div>
+                          <span className={`rounded-full px-3 py-1 text-xs font-semibold ${reservation.status === 'pending' ? 'bg-amber-100 text-amber-900' : 'bg-[#eef4ef] text-[#174c3a]'}`}>{statusLabel}</span>
+                        </div>
+                        <div className="grid gap-2 border-t border-[#e8e7e0] pt-4 text-sm text-[#59645d] sm:grid-cols-2">
+                          <p className="flex items-center gap-2"><CalendarDays aria-hidden="true" className="h-4 w-4" />{new Date(`${reservation.check_in}T00:00:00`).toLocaleDateString('fr-FR')} – {new Date(`${reservation.check_out}T00:00:00`).toLocaleDateString('fr-FR')}</p>
+                          <p className="font-semibold text-[#17251f]">{reservation.total_price_xaf.toLocaleString()} XAF · sans paiement</p>
+                          {reservation.guest_name && <p>{reservation.guest_name}</p>}
+                          {reservation.guest_email && <a className="flex items-center gap-2 hover:underline" href={`mailto:${reservation.guest_email}`}><Mail aria-hidden="true" className="h-4 w-4" />{reservation.guest_email}</a>}
+                          {reservation.guest_phone && <a className="flex items-center gap-2 hover:underline" href={`tel:${reservation.guest_phone}`}><Phone aria-hidden="true" className="h-4 w-4" />{reservation.guest_phone}</a>}
+                        </div>
+                        {reservation.special_requests && (
+                          <p className="rounded-xl bg-[#f5f1e8] p-3 text-sm leading-6 text-[#5c4324]">Demande spéciale : {reservation.special_requests}</p>
+                        )}
+                        {reservation.status === 'pending' && (
+                          <div className="flex flex-wrap gap-2">
+                            <button type="button" disabled={busy} onClick={() => reviewReservation(reservation.id, 'confirm')} className="btn-primary"><Check aria-hidden="true" className="h-4 w-4" /> Confirmer</button>
+                            <button type="button" disabled={busy} onClick={() => reviewReservation(reservation.id, 'reject')} className="btn-secondary"><X aria-hidden="true" className="h-4 w-4" /> Refuser</button>
+                          </div>
+                        )}
+                      </article>
+                    );
+                  })}
+                </section>
+              )}
               {activeSection === 'subscriptions' && <SubscriptionManagement hotels={hotels} revision={revision} busy={busy} runAction={runAction} />}
             </section>
           </div>

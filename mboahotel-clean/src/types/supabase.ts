@@ -267,6 +267,10 @@ export interface Database {
           room_count: number;
           total_price_xaf: number;
           status: 'pending' | 'confirmed' | 'cancelled' | 'completed';
+          guest_name: string | null;
+          guest_email: string | null;
+          guest_phone: string | null;
+          special_requests: string;
           created_at: string;
           updated_at: string;
         },
@@ -280,6 +284,10 @@ export interface Database {
           room_count: number;
           total_price_xaf: number;
           status?: 'pending' | 'confirmed' | 'cancelled' | 'completed';
+          guest_name?: string | null;
+          guest_email?: string | null;
+          guest_phone?: string | null;
+          special_requests?: string;
         }
       >;
     };
@@ -323,6 +331,21 @@ export interface Database {
       get_public_room_availability: {
         Args: { p_room_ids: string[]; p_check_in: string; p_check_out: string };
         Returns: { room_id: string; total_units: number; reserved_units: number; available_units: number }[];
+      };
+      create_online_reservations: {
+        Args: {
+          p_hotel_id: string;
+          p_room_selections: { room_id: string; room_count: number }[];
+          p_check_in: string;
+          p_check_out: string;
+          p_guest_count: number;
+          p_special_requests?: string;
+        };
+        Returns: string[];
+      };
+      review_hotel_reservation: {
+        Args: { p_reservation_id: string; p_action: string };
+        Returns: undefined;
       };
     };
     Enums: Record<string, never>;

@@ -111,7 +111,7 @@ const Reservations: React.FC = () => {
 
         <section className="mt-8">
           <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-            <div><h2 className="section-title">Mes réservations</h2><p className="mt-1 text-sm text-[#68736b]">Les séjours enregistrés sur votre compte apparaîtront ici.</p></div>
+            <div><h2 className="section-title">Mes réservations</h2><p className="mt-1 text-sm text-[#68736b]">Suivez les demandes envoyées aux établissements et leur confirmation.</p></div>
           </div>
           {loading ? (
             <p role="status" className="py-5 text-sm text-[#68736b]">Chargement de vos réservations…</p>
@@ -119,7 +119,7 @@ const Reservations: React.FC = () => {
             <div className="page-card px-6 py-10 text-center sm:px-10">
               <span className="mx-auto inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-[#eef4ef] text-[#174c3a]"><CalendarDays aria-hidden="true" className="h-7 w-7" /></span>
               <h3 className="mt-5 text-xl font-semibold text-[#17251f]">Aucune réservation enregistrée</h3>
-              <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-[#68736b]">La réservation en ligne n’est pas encore reliée à la base de données. Cette page affichera ici les séjours persistés dès que le parcours de réservation sera activé.</p>
+              <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-[#68736b]">Vos demandes de réservation apparaîtront ici après leur envoi.</p>
               <Link to="/search" className="btn-primary mt-6"><Search aria-hidden="true" className="h-4 w-4" /> Découvrir les hébergements</Link>
             </div>
           ) : (
@@ -131,12 +131,14 @@ const Reservations: React.FC = () => {
                       <h3 className="font-semibold">{hotelNames[reservation.hotel_id] ?? 'Établissement'}</h3>
                       <p className="mt-1 text-sm text-[#68736b]">{roomNames[reservation.room_id] ?? 'Chambre'} · {reservation.guest_count} voyageur(s) · {reservation.room_count} chambre(s)</p>
                     </div>
-                    <span className="rounded-full bg-[#eef4ef] px-3 py-1 text-xs font-semibold capitalize text-[#174c3a]">{reservation.status === 'confirmed' ? 'Confirmée' : reservation.status === 'cancelled' ? 'Annulée' : reservation.status === 'completed' ? 'Terminée' : 'En attente'}</span>
+                    <span className={`rounded-full px-3 py-1 text-xs font-semibold ${reservation.status === 'pending' ? 'bg-amber-100 text-amber-900' : reservation.status === 'cancelled' ? 'bg-red-100 text-red-800' : 'bg-[#eef4ef] text-[#174c3a]'}`}>{reservation.status === 'confirmed' ? 'Confirmée' : reservation.status === 'cancelled' ? 'Refusée / annulée' : reservation.status === 'completed' ? 'Terminée' : 'En attente de confirmation'}</span>
                   </div>
                   <div className="mt-4 flex flex-wrap justify-between gap-3 border-t border-[#e8e7e0] pt-4 text-sm">
                     <p>{new Date(`${reservation.check_in}T00:00:00`).toLocaleDateString('fr-FR')} – {new Date(`${reservation.check_out}T00:00:00`).toLocaleDateString('fr-FR')}</p>
                     <p className="font-semibold">{reservation.total_price_xaf.toLocaleString()} XAF</p>
                   </div>
+                  {reservation.special_requests && <p className="mt-3 rounded-xl bg-[#f5f1e8] p-3 text-sm leading-6 text-[#5c4324]">Votre demande : {reservation.special_requests}</p>}
+                  {reservation.status === 'pending' && <p className="mt-3 text-sm text-[#68736b]">Aucun paiement n’a été effectué. La chambre n’est pas bloquée avant confirmation par l’établissement.</p>}
                 </article>
               ))}
             </div>
