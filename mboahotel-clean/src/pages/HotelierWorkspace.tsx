@@ -17,6 +17,7 @@ interface HotelierWorkspaceProps {
 }
 
 const HotelierWorkspace: React.FC<HotelierWorkspaceProps> = ({ hotels, rooms, busy, runAction }) => {
+  const roomPhotoLimit = 3;
   const { user } = useAuth();
   const [selectedHotelId, setSelectedHotelId] = useState('');
   const [photos, setPhotos] = useState<Photo[]>([]);
@@ -137,7 +138,7 @@ const HotelierWorkspace: React.FC<HotelierWorkspaceProps> = ({ hotels, rooms, bu
     };
   }, [selectedHotel?.id, rooms]);
 
-  const usedPhotoCount = photos.length + roomPhotos.length;
+  const usedPhotoCount = photos.length;
   const remainingPhotoCount = Math.max(0, photoLimit - usedPhotoCount);
 
   useEffect(() => {
@@ -250,7 +251,15 @@ const HotelierWorkspace: React.FC<HotelierWorkspaceProps> = ({ hotels, rooms, bu
     event.target.value = '';
     if (!selectedHotel || !files.length) return;
     void runAction(async () => {
-      if (files.length > remainingPhotoCount) {
+      const currentPhotoCount = targetRoomId
+        ? roomPhotos.filter(photo => photo.room_id === targetRoomId).length
+        : photos.length;
+      const currentPhotoLimit = targetRoomId ? roomPhotoLimit : photoLimit;
+      const remainingUploadCount = Math.max(0, currentPhotoLimit - currentPhotoCount);
+      if (files.length > remainingUploadCount) {
+        if (targetRoomId) {
+          throw new Error(`Une chambre peut avoir au maximum ${roomPhotoLimit} photos. Il reste ${remainingUploadCount} emplacement(s) pour cette chambre.`);
+        }
         throw new Error(`Votre formule autorise ${photoLimit} photo(s) au total. Il vous reste ${remainingPhotoCount} emplacement(s).`);
       }
       const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
@@ -425,8 +434,8 @@ const HotelierWorkspace: React.FC<HotelierWorkspaceProps> = ({ hotels, rooms, bu
               <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                 <div>
                   <h2 className="text-xl font-semibold">Photos de l’établissement</h2>
-                  <p className="mt-1 text-sm text-[#68736b]">JPG, PNG ou WebP · 5 Mo maximum par image · galerie et chambres partagent le même plafond.</p>
-                  <p className="mt-1 text-sm font-medium text-[#174c3a]">{usedPhotoCount}/{photoLimit} photos utilisées · {remainingPhotoCount} emplacement(s) restant(s)</p>
+                  <p className="mt-1 text-sm text-[#68736b]">JPG, PNG ou WebP · 5 Mo maximum par image. Chaque chambre dispose en plus de son propre quota de trois photos.</p>
+                  <p className="mt-1 text-sm font-medium text-[#174c3a]">{usedPhotoCount}/{photoLimit} photos de l’établissement utilisées · {remainingPhotoCount} emplacement(s) restant(s)</p>
                 </div>
                 <label className={`btn-secondary ${remainingPhotoCount ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`} aria-disabled={remainingPhotoCount === 0}>
                   <ImagePlus aria-hidden="true" className="h-4 w-4" /> Ajouter des photos
@@ -508,10 +517,10 @@ const HotelierWorkspace: React.FC<HotelierWorkspaceProps> = ({ hotels, rooms, bu
                         </button>
                         {roomPhotoManagementId === room.id && hotel.id === selectedHotelId && (
                           <div className="mt-3">
-                            <p className="mb-2 text-sm text-[#68736b]">Ajoutez les images qui seront visibles sur la fiche publique de cette chambre. {usedPhotoCount}/{photoLimit} photos utilisées pour cet établissement.</p>
-                            <label className={`btn-secondary min-h-9 px-3 py-2 text-sm ${remainingPhotoCount && !photosLoading ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`} aria-disabled={remainingPhotoCount === 0 || photosLoading}>
+                            <p className="mb-2 text-sm text-[#68736b]">Ajoutez jusqu’à {roomPhotoLimit} photos qui seront visibles sur la fiche publique de cette chambre. {roomPhotos.filter(photo => photo.room_id === room.id).length}/{roomPhotoLimit} ajoutée(s).</p>
+                            <label className={`btn-secondary min-h-9 px-3 py-2 text-sm ${roomPhotos.filter(photo => photo.room_id === room.id).length < roomPhotoLimit && !photosLoading ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`} aria-disabled={roomPhotos.filter(photo => photo.room_id === room.id).length >= roomPhotoLimit || photosLoading}>
                               <ImagePlus aria-hidden="true" className="h-4 w-4" /> Ajouter une photo à cette chambre
-                              <input className="sr-only" type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={busy || photosLoading || remainingPhotoCount === 0} onChange={event => uploadPhotos(event, room.id)} />
+                              <input className="sr-only" type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={busy || photosLoading || roomPhotos.filter(photo => photo.room_id === room.id).length >= roomPhotoLimit} onChange={event => uploadPhotos(event, room.id)} />
                             </label>
                             {photosLoading && <p role="status" className="mt-2 text-sm text-[#68736b]">Chargement des photos et du quota...</p>}
                             {roomPhotos.filter(photo => photo.room_id === room.id).length > 0 && (
