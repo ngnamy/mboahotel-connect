@@ -258,7 +258,7 @@ export interface Database {
       reservations: Table<
         {
           id: string;
-          user_id: string;
+          user_id: string | null;
           hotel_id: string;
           room_id: string;
           check_in: string;
@@ -275,7 +275,7 @@ export interface Database {
           updated_at: string;
         },
         {
-          user_id: string;
+          user_id?: string | null;
           hotel_id: string;
           room_id: string;
           check_in: string;
@@ -346,6 +346,21 @@ export interface Database {
       review_hotel_reservation: {
         Args: { p_reservation_id: string; p_action: string };
         Returns: undefined;
+      };
+      create_staff_reservation: {
+        Args: {
+          p_hotel_id: string;
+          p_room_id: string;
+          p_guest_name: string;
+          p_guest_email: string | null;
+          p_guest_phone: string;
+          p_check_in: string;
+          p_check_out: string;
+          p_guest_count: number;
+          p_room_count: number;
+          p_special_requests?: string;
+        };
+        Returns: string;
       };
     };
     Enums: Record<string, never>;

@@ -218,3 +218,11 @@ Si l’insertion d’une chambre échoue avec `permission denied for table hotel
 ### Ajustement — trois photos par chambre (9 octobre 2026)
 
 Appliquer ensuite `supabase/migrations/20261009120000_room_photo_limit_per_room.sql` pour séparer le quota de la galerie de l’hôtel du quota des chambres et imposer un maximum de trois images par chambre côté base. Le formulaire de photos d’une chambre ne dépend plus du nombre d’images de la galerie.
+
+### Mise à jour — gestion des réservations par le personnel (9 octobre 2026)
+
+La migration `supabase/migrations/20261009170000_staff_reservation_management.sql` complète `20261009150000_online_reservations.sql`. Dans l’espace de gestion, les hôteliers peuvent enregistrer une réservation prise à l’accueil ou par téléphone pour leurs seuls établissements approuvés ; l’administrateur a une vue globale et peut enregistrer une réservation pour tout établissement approuvé. Une réservation manuelle est immédiatement confirmée si les dates, la capacité et le stock confirmé sont valides. Le nom et le téléphone du client sont requis ; un compte client et un courriel ne le sont pas.
+
+Le personnel peut également confirmer ou refuser les demandes en ligne en attente et annuler les réservations en attente ou confirmées. Les changements d’état et la création manuelle passent par des fonctions `SECURITY DEFINER` avec contrôle du rôle et de la propriété côté base. Le stock confirmé est recalculé sous verrou de chambre pour éviter de confirmer au-delà du nombre d’unités.
+
+**Déploiement :** après `20261009150000_online_reservations.sql`, appliquer uniquement `20261009170000_staff_reservation_management.sql`, puis déployer le frontend correspondant. Tester avec un administrateur et deux hôteliers : création sans compte client, refus d’un hôtelier d’agir sur l’hôtel de l’autre, visibilité globale admin, refus d’une demande qui dépasse le stock, confirmation/refus d’une demande en ligne et annulation d’une réservation confirmée. La migration doit encore être exécutée dans Supabase ; le build frontend ne valide pas les fonctions SQL contre la base distante.
